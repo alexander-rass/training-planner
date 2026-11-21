@@ -60,14 +60,14 @@ describe('formatWhatsAppPlan', () => {
       [
         '*Warm-up*',
         '- *Passing Diamond*',
-        'Players form a diamond (*10m x 10m*).',
-        '- Pass to _the back foot_.',
-        '- *Player selection:* Called by number/index',
+        '  Players form a diamond (*10m x 10m*).',
+        '  - Pass to _the back foot_.',
+        '  - *Player selection:* Called by number/index',
         '',
         '*Main part*',
         '- *Passing Diamond*',
-        'Players form a diamond (*10m x 10m*).',
-        '- Pass to _the back foot_.',
+        '  Players form a diamond (*10m x 10m*).',
+        '  - Pass to _the back foot_.',
       ].join('\n'),
     );
   });
@@ -99,10 +99,10 @@ describe('whatsAppToMarkdown', () => {
   it('converts WhatsApp formatting markers for a formatted in-app preview', () => {
     expect(
       whatsAppToMarkdown(
-        '*Warm-up*\n- *Passing Diamond*\nPlayers **open body**.\n- *Player selection:* Stand in line',
+        '*Warm-up*\n- *Passing Diamond*\n  Players **open body**.\n  - *Player selection:* Stand in line',
       ),
     ).toBe(
-      '## Warm-up\n- **Passing Diamond**\nPlayers **open body**.\n- **Player selection:** Stand in line',
+      '## Warm-up\n- **Passing Diamond**\n  Players **open body**.\n  - **Player selection:** Stand in line',
     );
   });
 });

@@ -39,7 +39,7 @@ export function formatWhatsAppPlan(data: TrainingData, plans: StagePlan[]): stri
       const lines = [`- *${drill.title}*`];
       const description = markdownToWhatsApp(drill.descriptionMarkdown);
       if (description) {
-        lines.push(description);
+        lines.push(indentContinuation(description));
       }
 
       for (const modificationId of drill.modificationIds) {
@@ -51,7 +51,7 @@ export function formatWhatsAppPlan(data: TrainingData, plans: StagePlan[]): stri
         const modification = modificationsById.get(modificationId);
         const option = modification?.options.find((candidate) => candidate.id === selectedOptionId);
         if (modification && option) {
-          lines.push(`- *${modification.label}:* ${option.label}`);
+          lines.push(`  - *${modification.label}:* ${option.label}`);
         }
       }
 
@@ -101,9 +101,9 @@ export function whatsAppToMarkdown(message: string): string {
         return `## ${stage[1] ?? ''}`;
       }
 
-      const modification = line.match(/^- \*([^*]+:)\* (.+)$/);
+      const modification = line.match(/^(\s*)- \*([^*]+:)\* (.+)$/);
       if (modification) {
-        return `- **${modification[1] ?? ''}** ${modification[2] ?? ''}`;
+        return `${modification[1] ?? ''}- **${modification[2] ?? ''}** ${modification[3] ?? ''}`;
       }
 
       const drill = line.match(/^- \*([^*]+)\*$/);
@@ -113,6 +113,13 @@ export function whatsAppToMarkdown(message: string): string {
 
       return line.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '**$1**').replace(/~([^~]+)~/g, '~~$1~~');
     })
+    .join('\n');
+}
+
+function indentContinuation(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => (line ? `  ${line}` : line))
     .join('\n');
 }
 

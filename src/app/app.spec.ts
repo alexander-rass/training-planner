@@ -105,6 +105,7 @@ describe('App', () => {
     expect(messagePreview.textContent).toContain('Player selection: Stand in line');
     expect(messagePreview.textContent).not.toContain('*');
     expect(messagePreview.querySelector('h2')?.textContent).toBe('Warm-up');
+    expect(messagePreview.querySelector('ul ul')).not.toBeNull();
 
     const countInput = compiled.querySelector('.count-control input') as HTMLInputElement;
     countInput.value = '0';
