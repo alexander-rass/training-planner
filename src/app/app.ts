@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import {
   Drill,
   LabelDefinition,
@@ -8,16 +8,7 @@ import {
   TrainingData,
   TrainingDataValidationError,
 } from './training-data';
-
-interface PlanSlot {
-  drillId: string | null;
-  modificationSelections: Record<string, string>;
-}
-
-interface StagePlan {
-  stageId: string;
-  slots: PlanSlot[];
-}
+import { formatWhatsAppPlan, PlanSlot, StagePlan } from './training-plan';
 
 @Component({
   selector: 'app-root',
@@ -32,6 +23,12 @@ export class App {
   protected readonly isLoading = signal(false);
   protected readonly selectedLabelIds = signal<ReadonlySet<string>>(new Set());
   protected readonly stagePlans = signal<StagePlan[]>([]);
+  protected readonly whatsappMessage = computed(() => {
+    const data = this.trainingData();
+    return data ? formatWhatsAppPlan(data, this.stagePlans()) : '';
+  });
+  protected readonly copied = signal(false);
+  protected readonly copyError = signal<string | null>(null);
 
   protected stages(): StageDefinition[] {
     const data = this.trainingData();
@@ -135,6 +132,7 @@ export class App {
     this.stagePlans.update((plans) =>
       plans.map((plan) => (plan.stageId === stageId ? { ...plan, slots: nextSlots } : plan)),
     );
+    this.resetCopyStatus();
   }
 
   protected onDrillSelected(stageId: string, slotIndex: number, event: Event): void {
@@ -184,6 +182,30 @@ export class App {
       }
       return { ...slot, modificationSelections };
     });
+  }
+
+  protected async copyWhatsAppMessage(): Promise<void> {
+    const message = this.whatsappMessage();
+    if (!message) {
+      return;
+    }
+
+    this.resetCopyStatus();
+    if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+      this.copyError.set(
+        'Clipboard access is unavailable. Select and copy the message preview instead.',
+      );
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(message);
+      this.copied.set(true);
+    } catch (error) {
+      this.copyError.set(
+        `Could not copy the message: ${describeError(error)} Select and copy the preview instead.`,
+      );
+    }
   }
 
   protected async onFileSelected(event: Event): Promise<void> {
@@ -236,6 +258,7 @@ export class App {
       this.loadedFileName.set(file.name);
       this.selectedLabelIds.set(new Set());
       this.planError.set(null);
+      this.resetCopyStatus();
       this.stagePlans.set(
         [...data.catalog.stages]
           .sort((a, b) => a.order - b.order)
@@ -264,6 +287,12 @@ export class App {
           : plan,
       ),
     );
+    this.resetCopyStatus();
+  }
+
+  private resetCopyStatus(): void {
+    this.copied.set(false);
+    this.copyError.set(null);
   }
 }
 

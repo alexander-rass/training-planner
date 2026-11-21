@@ -90,10 +90,22 @@ describe('App', () => {
       'Pass and follow your pass.',
     );
 
+    const modificationSelect = compiled.querySelector('.modifications select') as HTMLSelectElement;
+    modificationSelect.value = 'line';
+    modificationSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    const messagePreview = compiled.querySelector(
+      'textarea[aria-label="WhatsApp message preview"]',
+    ) as HTMLTextAreaElement;
+    expect(messagePreview.value).toContain('*Warm-up*');
+    expect(messagePreview.value).toContain('- *Passing for U11*');
+    expect(messagePreview.value).toContain('- *Player selection:* Stand in line');
+
     const countInput = compiled.querySelector('.count-control input') as HTMLInputElement;
     countInput.value = '0';
     countInput.dispatchEvent(new Event('change'));
     fixture.detectChanges();
     expect(compiled.querySelector('.slot')).toBeNull();
+    expect((compiled.querySelector('.copy-button') as HTMLButtonElement).disabled).toBe(true);
   });
 });

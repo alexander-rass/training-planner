@@ -96,7 +96,8 @@ summary:focus-visible {
 
 .welcome,
 .filters,
-.stage {
+.stage,
+.share {
   border: 1px solid #dce5dc;
   border-radius: 1rem;
   background: #fff;
@@ -107,12 +108,6 @@ summary:focus-visible {
   padding: clamp(1.5rem, 5vw, 3rem);
 }
 
-.welcome h1 {
-  margin-bottom: 0.75rem;
-  font-size: 1.5rem;
-}
-
-.welcome p,
 .section-heading p {
   margin-bottom: 0;
   color: #4b5c52;
@@ -153,10 +148,6 @@ summary:focus-visible {
   padding: 0.5rem 0.85rem;
 }
 
-.filter-chip:hover {
-  background: #f3f8f4;
-}
-
 .filter-chip.selected {
   border-color: #287348;
   background: #287348;
@@ -166,10 +157,6 @@ summary:focus-visible {
 .text-button {
   padding: 0.45rem 0.8rem;
   color: #287348;
-}
-
-.text-button:hover {
-  background: #f3f8f4;
 }
 
 .additional-filters {
@@ -191,6 +178,61 @@ summary:focus-visible {
   gap: 1rem;
 }
 
+.share {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+}
+
+.share .section-heading {
+  margin-bottom: 1rem;
+}
+
+.copy-button {
+  min-height: 2.7rem;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: #287348;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.copy-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.share textarea {
+  display: block;
+  width: 100%;
+  min-height: 14rem;
+  padding: 0.85rem;
+  border: 1px solid #cbd8cd;
+  border-radius: 0.6rem;
+  background: #fbfdfb;
+  color: #17231e;
+  font:
+    0.95rem/1.5 Arial,
+    Helvetica,
+    sans-serif;
+  resize: vertical;
+  white-space: pre-wrap;
+}
+
+.empty-share,
+.copy-success {
+  margin: 0;
+  color: #5b6b61;
+  line-height: 1.5;
+}
+
+.copy-success {
+  margin-top: 0.8rem;
+  color: #1d5934;
+}
+
 .stage {
   overflow: hidden;
 }
@@ -200,16 +242,8 @@ summary:focus-visible {
   background: #f7faf7;
 }
 
-.stage-number {
-  margin-bottom: 0.35rem;
-}
-
 .count-control {
   width: min(10rem, 40%);
-}
-
-.count-control input {
-  font-variant-numeric: tabular-nums;
 }
 
 .slots {
@@ -259,19 +293,13 @@ summary:focus-visible {
   flex: 1 1 13rem;
 }
 
-.empty-stage,
-.empty-slot {
+.empty-stage {
   margin: 0;
   color: #637268;
 }
 
 .empty-stage {
   padding: 1.25rem 1.5rem;
-}
-
-.empty-slot {
-  margin-top: 0.8rem;
-  font-size: 0.9rem;
 }
 
 .message {

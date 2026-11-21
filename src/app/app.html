@@ -171,6 +171,41 @@
         </article>
       }
     </section>
+
+    <section class="share" aria-labelledby="share-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="share-heading">WhatsApp message</h2>
+          <p>Preview the stage-ordered text, then copy it into your chat.</p>
+        </div>
+        <button
+          class="copy-button"
+          type="button"
+          [disabled]="!whatsappMessage()"
+          (click)="copyWhatsAppMessage()"
+        >
+          {{ copied() ? 'Copied' : 'Copy message' }}
+        </button>
+      </div>
+
+      @if (whatsappMessage()) {
+        <textarea
+          aria-label="WhatsApp message preview"
+          readonly
+          rows="12"
+          [value]="whatsappMessage()"
+        ></textarea>
+      } @else {
+        <p class="empty-share">Select at least one drill to generate the message.</p>
+      }
+
+      @if (copied()) {
+        <p class="copy-success" role="status">Message copied. You can paste it into WhatsApp.</p>
+      }
+      @if (copyError(); as error) {
+        <p class="message error" role="alert">{{ error }}</p>
+      }
+    </section>
   } @else if (!loadError() && !isLoading()) {
     <section class="welcome">
       <h1>Load your training data to begin</h1>

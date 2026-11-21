@@ -15,7 +15,7 @@
         "defaultDrillCount": 3
       },
       {
-        "id": "funinio",
+        "id": "game",
         "label": "Funinio / Game",
         "order": 3,
         "defaultDrillCount": 1
@@ -78,7 +78,7 @@
       "title": "4-Cone Passing Diamond",
       "availableStageIds": ["warmup", "main"],
       "labelIds": ["passing", "first-touch", "u11", "players-4"],
-      "descriptionMarkdown": "Players pass clockwise around the diamond and follow their pass.",
+      "descriptionMarkdown": "Players pass **clockwise** around the __diamond__ and follow their pass.",
       "coachingPoints": [
         "Open body posture before receiving",
         "Firm pass to the back foot"
@@ -99,6 +99,17 @@
       "availableStageIds": ["warmup"],
       "labelIds": ["passing"],
       "descriptionMarkdown": "Players run around the field in a continuous loop.",
+      "coachingPoints": [
+      ],
+      "modificationIds": [],
+      "diagram": null
+    },
+    {
+      "id": "drill-003",
+      "title": "Funinion game",
+      "availableStageIds": ["game"],
+      "labelIds": [],
+      "descriptionMarkdown": "Just a simple funinio game.",
       "coachingPoints": [
       ],
       "modificationIds": [],
