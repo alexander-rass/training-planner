@@ -1,5 +1,9 @@
 import { TestBed } from '@angular/core/testing';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
+import { firstValueFrom } from 'rxjs';
 import { App } from './app';
+import deTranslations from '../../public/i18n/de.json';
+import enTranslations from '../../public/i18n/en.json';
 
 const trainingDataJson = JSON.stringify({
   schemaVersion: 1,
@@ -39,17 +43,62 @@ const trainingDataJson = JSON.stringify({
   ],
 });
 
+function translationKeys(value: object, prefix = ''): string[] {
+  return Object.entries(value)
+    .flatMap(([key, child]) => {
+      const path = prefix ? `${prefix}.${key}` : key;
+      return typeof child === 'object' && child !== null && !Array.isArray(child)
+        ? translationKeys(child, path)
+        : [path];
+    })
+    .sort();
+}
+
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: [provideTranslateService({ fallbackLang: 'en' })],
     }).compileComponents();
+
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('de', deTranslations);
+    translate.setTranslation('en', enTranslations);
+    await firstValueFrom(translate.use('de'));
   });
 
   it('should create the app', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
+  });
+
+  it('provides the same translation keys in both languages', () => {
+    expect(translationKeys(deTranslations)).toEqual(translationKeys(enTranslations));
+  });
+
+  it('switches between German and English at runtime', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const languageSelect = compiled.querySelector('.language-picker select') as HTMLSelectElement;
+    expect(languageSelect.value).toBe('de');
+    expect(document.documentElement.lang).toBe('de');
+    expect(compiled.querySelector('.page-header h1')?.textContent).toContain(
+      'Trainingseinheit planen',
+    );
+
+    languageSelect.value = 'en';
+    languageSelect.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('.page-header h1')?.textContent).toContain(
+      'Build a training session',
+    );
+    expect(document.title).toBe('Training planner');
+    expect(document.documentElement.lang).toBe('en');
   });
 
   it('should offer a JSON file picker', async () => {
@@ -74,7 +123,7 @@ describe('App', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelectorAll('.slot')).toHaveLength(1);
-    expect(compiled.querySelector('.download-button')?.textContent).toContain('Download JSON copy');
+    expect(compiled.querySelector('.download-button')).not.toBeNull();
 
     const u11Filter = compiled.querySelector(
       '.additional-filters .filter-chip',
@@ -97,9 +146,7 @@ describe('App', () => {
     modificationSelect.value = 'line';
     modificationSelect.dispatchEvent(new Event('change'));
     fixture.detectChanges();
-    const messagePreview = compiled.querySelector(
-      '[aria-label="Formatted WhatsApp message preview"]',
-    ) as HTMLElement;
+    const messagePreview = compiled.querySelector('.message-preview') as HTMLElement;
     expect(messagePreview.textContent).toContain('Warm-up');
     expect(messagePreview.textContent).toContain('Passing for U11');
     expect(messagePreview.textContent).toContain('Player selection: Stand in line');

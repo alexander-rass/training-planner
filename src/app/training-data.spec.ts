@@ -48,9 +48,7 @@ describe('parseTrainingData', () => {
       catalog: { ...validData.catalog, mainFilterLabelIds: ['unknown'] },
     };
 
-    expect(() => parseTrainingData(data)).toThrow(
-      'catalog.mainFilterLabelIds[0] references unknown label "unknown".',
-    );
+    expect(() => parseTrainingData(data)).toThrow('validation.unknownLabel');
   });
 
   it('rejects references to unknown stages in drills', () => {
@@ -64,9 +62,7 @@ describe('parseTrainingData', () => {
       ],
     };
 
-    expect(() => parseTrainingData(data)).toThrow(
-      'drills[0].availableStageIds[0] references unknown stage "unknown".',
-    );
+    expect(() => parseTrainingData(data)).toThrow('validation.unknownStage');
   });
 
   it('rejects negative default drill counts', () => {
@@ -78,8 +74,6 @@ describe('parseTrainingData', () => {
       },
     };
 
-    expect(() => parseTrainingData(data)).toThrow(
-      'catalog.stages[0].defaultDrillCount must be a non-negative integer.',
-    );
+    expect(() => parseTrainingData(data)).toThrow('validation.nonNegativeInteger');
   });
 });

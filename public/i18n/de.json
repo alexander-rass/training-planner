@@ -1,0 +1,84 @@
+{
+  "app": {
+    "documentTitle": "Trainingsplaner",
+    "heading": "Trainingseinheit planen"
+  },
+  "language": {
+    "label": "Sprache",
+    "german": "Deutsch",
+    "english": "Englisch",
+    "loadFailed": "Die Sprachdatei für „{{language}}“ konnte nicht geladen werden. Die bisherige Sprache bleibt aktiv."
+  },
+  "header": {
+    "downloadJson": "JSON-Kopie herunterladen",
+    "changeData": "Datendatei wechseln",
+    "loadData": "Trainingsdaten laden"
+  },
+  "status": {
+    "readingFile": "Datei wird gelesen und überprüft ..."
+  },
+  "errors": {
+    "loadTitle": "Trainingsdaten konnten nicht geladen werden",
+    "fileRead": "Die Datei „{{fileName}}“ konnte nicht gelesen werden.",
+    "invalidJson": "Die Datei „{{fileName}}“ enthält kein gültiges JSON.",
+    "invalidTrainingData": "Die Datei „{{fileName}}“ enthält ungültige Trainingsdaten:",
+    "previousFileActive": "Die zuvor geladene Datei „{{fileName}}“ bleibt aktiv.",
+    "downloadUnavailable": "Der JSON-Download ist in diesem Browser nicht verfügbar.",
+    "downloadFailed": "Die JSON-Datei konnte nicht heruntergeladen werden.",
+    "invalidDrillCount": "Gib eine nicht-negative ganze Zahl für die Anzahl der Übungen ein.",
+    "clipboardUnavailable": "Der Zugriff auf die Zwischenablage ist nicht verfügbar. Markiere stattdessen die formatierte Vorschau und kopiere sie.",
+    "clipboardFailed": "Die Nachricht konnte nicht in die Zwischenablage kopiert werden. Markiere stattdessen die formatierte Vorschau und kopiere sie."
+  },
+  "validation": {
+    "schemaVersion": "{{path}} muss den Wert 1 haben.",
+    "singleSelectType": "{{path}} muss den Typ „single-select“ haben.",
+    "optionsRequired": "{{path}} muss mindestens eine Option enthalten.",
+    "duplicateStageOrder": "Die Phasenreihenfolge {{value}} ist mehrfach vergeben.",
+    "unknownLabel": "{{path}} verweist auf das unbekannte Label „{{value}}“.",
+    "unknownStage": "{{path}} verweist auf die unbekannte Phase „{{value}}“.",
+    "unknownModification": "{{path}} verweist auf die unbekannte Anpassung „{{value}}“.",
+    "duplicateId": "{{path}} enthält die doppelte ID „{{value}}“.",
+    "object": "{{path}} muss ein Objekt sein.",
+    "array": "{{path}} muss eine Liste sein.",
+    "string": "{{path}} muss Text enthalten.",
+    "nonEmptyString": "{{path}} darf nicht leer sein.",
+    "nonEmptyArray": "{{path}} muss mindestens einen Eintrag enthalten.",
+    "positiveInteger": "{{path}} muss eine positive ganze Zahl sein.",
+    "nonNegativeInteger": "{{path}} muss eine nicht-negative ganze Zahl sein."
+  },
+  "filters": {
+    "heading": "Übungen nach Label filtern",
+    "multipleLabels": "Bei mehreren ausgewählten Labels muss eine Übung alle Labels enthalten.",
+    "clear": "Filter zurücksetzen",
+    "mainAria": "Hauptfilter",
+    "additional": "Weitere Labels ({{count}})"
+  },
+  "stages": {
+    "aria": "Trainingsphasen",
+    "number": "Phase {{order}}",
+    "drillCount": "Anzahl der Übungen",
+    "empty": "Für diese Phase sind keine Übungen ausgewählt."
+  },
+  "drills": {
+    "slotNumber": "Übung {{index}}",
+    "choose": "Übung auswählen",
+    "selectPlaceholder": "Übung auswählen ...",
+    "noLabelMatches": "Keine Übung passt zu diesen Labels und dieser Phase."
+  },
+  "modifications": {
+    "chooseOption": "Option auswählen ..."
+  },
+  "share": {
+    "heading": "WhatsApp-Nachricht",
+    "description": "Sieh dir den Text in Phasenreihenfolge an und kopiere ihn in den Chat.",
+    "copyButton": "Nachricht kopieren",
+    "copiedButton": "Kopiert",
+    "copied": "Nachricht kopiert. Du kannst sie jetzt in WhatsApp einfügen.",
+    "previewAria": "Formatierte Vorschau der WhatsApp-Nachricht",
+    "empty": "Wähle mindestens eine Übung aus, um die Nachricht zu erstellen."
+  },
+  "welcome": {
+    "heading": "Lade deine Trainingsdaten, um zu beginnen",
+    "description": "Wähle die JSON-Datei mit deinen Phasen, Labels, Anpassungen und Übungen aus."
+  }
+}

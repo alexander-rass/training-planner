@@ -1,0 +1,84 @@
+{
+  "app": {
+    "documentTitle": "Training planner",
+    "heading": "Build a training session"
+  },
+  "language": {
+    "label": "Language",
+    "german": "German",
+    "english": "English",
+    "loadFailed": "The translation file for \"{{language}}\" could not be loaded. The current language remains active."
+  },
+  "header": {
+    "downloadJson": "Download JSON copy",
+    "changeData": "Change data file",
+    "loadData": "Load training data"
+  },
+  "status": {
+    "readingFile": "Reading and validating file ..."
+  },
+  "errors": {
+    "loadTitle": "Could not load training data",
+    "fileRead": "Could not read the file \"{{fileName}}\".",
+    "invalidJson": "The file \"{{fileName}}\" does not contain valid JSON.",
+    "invalidTrainingData": "The file \"{{fileName}}\" contains invalid training data:",
+    "previousFileActive": "The previously loaded file \"{{fileName}}\" remains active.",
+    "downloadUnavailable": "JSON download is not available in this browser.",
+    "downloadFailed": "Could not download the JSON file.",
+    "invalidDrillCount": "Enter a non-negative whole number of drills.",
+    "clipboardUnavailable": "Clipboard access is unavailable. Select and copy the formatted preview instead.",
+    "clipboardFailed": "Could not copy the message to the clipboard. Select and copy the formatted preview instead."
+  },
+  "validation": {
+    "schemaVersion": "{{path}} must be 1.",
+    "singleSelectType": "{{path}} must have the type \"single-select\".",
+    "optionsRequired": "{{path}} must contain at least one option.",
+    "duplicateStageOrder": "Stage order {{value}} is used more than once.",
+    "unknownLabel": "{{path}} references unknown label \"{{value}}\".",
+    "unknownStage": "{{path}} references unknown stage \"{{value}}\".",
+    "unknownModification": "{{path}} references unknown modification \"{{value}}\".",
+    "duplicateId": "{{path}} contains duplicate ID \"{{value}}\".",
+    "object": "{{path}} must be an object.",
+    "array": "{{path}} must be an array.",
+    "string": "{{path}} must be a string.",
+    "nonEmptyString": "{{path}} must not be empty.",
+    "nonEmptyArray": "{{path}} must contain at least one item.",
+    "positiveInteger": "{{path}} must be a positive integer.",
+    "nonNegativeInteger": "{{path}} must be a non-negative integer."
+  },
+  "filters": {
+    "heading": "Filter drills by label",
+    "multipleLabels": "When you select multiple labels, a drill must have all of them.",
+    "clear": "Clear filters",
+    "mainAria": "Main filters",
+    "additional": "More labels ({{count}})"
+  },
+  "stages": {
+    "aria": "Training stages",
+    "number": "Stage {{order}}",
+    "drillCount": "Number of drills",
+    "empty": "No drills selected for this stage."
+  },
+  "drills": {
+    "slotNumber": "Drill {{index}}",
+    "choose": "Choose a drill",
+    "selectPlaceholder": "Select a drill ...",
+    "noLabelMatches": "No drills match these labels for this stage."
+  },
+  "modifications": {
+    "chooseOption": "Choose an option ..."
+  },
+  "share": {
+    "heading": "WhatsApp message",
+    "description": "Preview the stage-ordered text, then copy it into your chat.",
+    "copyButton": "Copy message",
+    "copiedButton": "Copied",
+    "copied": "Message copied. You can paste it into WhatsApp.",
+    "previewAria": "Formatted WhatsApp message preview",
+    "empty": "Select at least one drill to generate the message."
+  },
+  "welcome": {
+    "heading": "Load your training data to begin",
+    "description": "Select the JSON file containing your stages, labels, modifications, and drills."
+  }
+}

@@ -48,12 +48,19 @@ export interface Drill {
 
 export class TrainingDataValidationError extends Error {
   override readonly name = 'TrainingDataValidationError';
+
+  constructor(
+    readonly translationKey: string,
+    readonly params: Record<string, string | number>,
+  ) {
+    super(translationKey);
+  }
 }
 
 export function parseTrainingData(value: unknown): TrainingData {
   const root = asRecord(value, 'root');
   if (root['schemaVersion'] !== 1) {
-    invalid('schemaVersion', 'must be 1');
+    invalid('validation.schemaVersion', { path: 'schemaVersion' });
   }
 
   const catalogRecord = asRecord(root['catalog'], 'catalog');
@@ -87,7 +94,7 @@ export function parseTrainingData(value: unknown): TrainingData {
       const path = `catalog.modifications[${index}]`;
       const modification = asRecord(value, path);
       if (modification['type'] !== 'single-select') {
-        invalid(`${path}.type`, 'must be "single-select"');
+        invalid('validation.singleSelectType', { path: `${path}.type` });
       }
 
       const options = asArray(modification['options'], `${path}.options`).map(
@@ -101,7 +108,7 @@ export function parseTrainingData(value: unknown): TrainingData {
         },
       );
       if (options.length === 0) {
-        invalid(`${path}.options`, 'must contain at least one option');
+        invalid('validation.optionsRequired', { path: `${path}.options` });
       }
 
       assertUniqueIds(
@@ -158,7 +165,7 @@ function validateReferences(data: TrainingData): void {
   const stageOrders = new Set<number>();
   for (const stage of data.catalog.stages) {
     if (stageOrders.has(stage.order)) {
-      invalid('catalog.stages.order', `contains duplicate order "${stage.order}"`);
+      invalid('validation.duplicateStageOrder', { value: stage.order });
     }
     stageOrders.add(stage.order);
   }
@@ -213,9 +220,19 @@ function validateReferences(data: TrainingData): void {
   }
 }
 
-function assertReference(knownIds: Set<string>, id: string, path: string, kind: string): void {
+function assertReference(
+  knownIds: Set<string>,
+  id: string,
+  path: string,
+  kind: 'label' | 'stage' | 'modification',
+): void {
   if (!knownIds.has(id)) {
-    invalid(path, `references unknown ${kind} "${id}"`);
+    const keyByKind = {
+      label: 'validation.unknownLabel',
+      stage: 'validation.unknownStage',
+      modification: 'validation.unknownModification',
+    };
+    invalid(keyByKind[kind], { path, value: id });
   }
 }
 
@@ -223,7 +240,7 @@ function assertUniqueIds(ids: string[], path: string): void {
   const seen = new Set<string>();
   for (const id of ids) {
     if (seen.has(id)) {
-      invalid(path, `contains duplicate id "${id}"`);
+      invalid('validation.duplicateId', { path, value: id });
     }
     seen.add(id);
   }
@@ -231,7 +248,7 @@ function assertUniqueIds(ids: string[], path: string): void {
 
 function asRecord(value: unknown, path: string): Record<string, unknown> {
   if (!isRecord(value)) {
-    invalid(path, 'must be an object');
+    invalid('validation.object', { path });
   }
   return value;
 }
@@ -242,14 +259,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function asArray(value: unknown, path: string): unknown[] {
   if (!Array.isArray(value)) {
-    invalid(path, 'must be an array');
+    invalid('validation.array', { path });
   }
   return value;
 }
 
 function asString(value: unknown, path: string): string {
   if (typeof value !== 'string') {
-    invalid(path, 'must be a string');
+    invalid('validation.string', { path });
   }
   return value;
 }
@@ -257,7 +274,7 @@ function asString(value: unknown, path: string): string {
 function asNonEmptyString(value: unknown, path: string): string {
   const stringValue = asString(value, path);
   if (stringValue.trim().length === 0) {
-    invalid(path, 'must not be empty');
+    invalid('validation.nonEmptyString', { path });
   }
   return stringValue;
 }
@@ -267,25 +284,25 @@ function asStringList(value: unknown, path: string, allowEmpty = true): string[]
     asNonEmptyString(item, `${path}[${index}]`),
   );
   if (!allowEmpty && list.length === 0) {
-    invalid(path, 'must contain at least one item');
+    invalid('validation.nonEmptyArray', { path });
   }
   return list;
 }
 
 function asPositiveInteger(value: unknown, path: string): number {
   if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
-    invalid(path, 'must be a positive integer');
+    invalid('validation.positiveInteger', { path });
   }
   return value;
 }
 
 function asNonNegativeInteger(value: unknown, path: string): number {
   if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
-    invalid(path, 'must be a non-negative integer');
+    invalid('validation.nonNegativeInteger', { path });
   }
   return value;
 }
 
-function invalid(path: string, reason: string): never {
-  throw new TrainingDataValidationError(`${path} ${reason}.`);
+function invalid(key: string, params: Record<string, string | number>): never {
+  throw new TrainingDataValidationError(key, params);
 }

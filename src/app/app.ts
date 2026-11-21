@@ -1,4 +1,5 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { MarkdownPipe } from './markdown.pipe';
 import {
   Drill,
@@ -12,29 +13,53 @@ import {
 import { formatWhatsAppPlan, PlanSlot, StagePlan, whatsAppToMarkdown } from './training-plan';
 import { createJsonDownloadPayload } from './training-data-download';
 
+interface TranslationMessage {
+  key: string;
+  params?: Record<string, string | number>;
+  detail?: TranslationMessage;
+}
+
 @Component({
   selector: 'app-root',
-  imports: [MarkdownPipe],
+  imports: [MarkdownPipe, TranslatePipe],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App {
+  private readonly translate = inject(TranslateService);
+  private readonly translatedDocumentTitle = this.translate.translate('app.documentTitle');
+
   protected readonly trainingData = signal<TrainingData | null>(null);
   protected readonly loadedFileName = signal<string | null>(null);
-  protected readonly loadError = signal<string | null>(null);
-  protected readonly planError = signal<string | null>(null);
+  protected readonly loadError = signal<TranslationMessage | null>(null);
+  protected readonly planError = signal<TranslationMessage | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly selectedLabelIds = signal<ReadonlySet<string>>(new Set());
   protected readonly stagePlans = signal<StagePlan[]>([]);
+  protected readonly currentLanguage = this.translate.currentLang;
+  protected readonly languageError = signal<TranslationMessage | null>(null);
   protected readonly whatsappMessage = computed(() => {
     const data = this.trainingData();
     return data ? formatWhatsAppPlan(data, this.stagePlans()) : '';
   });
   protected readonly whatsappPreview = computed(() => whatsAppToMarkdown(this.whatsappMessage()));
   protected readonly copied = signal(false);
-  protected readonly copyError = signal<string | null>(null);
-  protected readonly downloadError = signal<string | null>(null);
+  protected readonly copyError = signal<TranslationMessage | null>(null);
+  protected readonly downloadError = signal<TranslationMessage | null>(null);
   private readonly sourceJsonText = signal<string | null>(null);
+
+  constructor() {
+    effect(() => {
+      const title = this.translatedDocumentTitle();
+      const language = this.currentLanguage();
+      if (typeof document !== 'undefined') {
+        if (typeof title === 'string') {
+          document.title = title;
+        }
+        document.documentElement.lang = language ?? 'de';
+      }
+    });
+  }
 
   protected stages(): StageDefinition[] {
     const data = this.trainingData();
@@ -126,7 +151,7 @@ export class App {
     const currentSlots = this.slotsForStage(stageId);
     if (!Number.isSafeInteger(count) || count < 0) {
       input.value = String(currentSlots.length);
-      this.planError.set('Enter a non-negative whole number of drills.');
+      this.planError.set({ key: 'errors.invalidDrillCount' });
       return;
     }
 
@@ -198,20 +223,37 @@ export class App {
 
     this.resetCopyStatus();
     if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
-      this.copyError.set(
-        'Clipboard access is unavailable. Select and copy the message preview instead.',
-      );
+      this.copyError.set({ key: 'errors.clipboardUnavailable' });
       return;
     }
 
     try {
       await navigator.clipboard.writeText(message);
       this.copied.set(true);
-    } catch (error) {
-      this.copyError.set(
-        `Could not copy the message: ${describeError(error)} Select and copy the preview instead.`,
-      );
+    } catch {
+      this.copyError.set({ key: 'errors.clipboardFailed' });
     }
+  }
+
+  protected onLanguageSelected(event: Event): void {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const language = select.value;
+    if (language !== 'de' && language !== 'en') {
+      select.value = this.currentLanguage() ?? 'de';
+      return;
+    }
+
+    this.languageError.set(null);
+    this.translate.use(language).subscribe({
+      error: () => {
+        this.languageError.set({ key: 'language.loadFailed', params: { language } });
+        select.value = this.currentLanguage() ?? 'de';
+      },
+    });
   }
 
   protected downloadJsonCopy(): void {
@@ -223,7 +265,7 @@ export class App {
 
     this.downloadError.set(null);
     if (typeof document === 'undefined' || typeof URL.createObjectURL !== 'function') {
-      this.downloadError.set('File download is not available in this browser.');
+      this.downloadError.set({ key: 'errors.downloadUnavailable' });
       return;
     }
 
@@ -241,8 +283,8 @@ export class App {
       link.hidden = true;
       document.body.appendChild(link);
       link.click();
-    } catch (error) {
-      this.downloadError.set(`Could not download the JSON file: ${describeError(error)}`);
+    } catch {
+      this.downloadError.set({ key: 'errors.downloadFailed' });
     } finally {
       link?.remove();
       if (objectUrl !== null) {
@@ -275,8 +317,8 @@ export class App {
       let contents: string;
       try {
         contents = await file.text();
-      } catch (error) {
-        this.loadError.set(`Could not read "${file.name}": ${describeError(error)}`);
+      } catch {
+        this.loadError.set({ key: 'errors.fileRead', params: { fileName: file.name } });
         return;
       }
 
@@ -287,7 +329,7 @@ export class App {
         if (!(error instanceof SyntaxError)) {
           throw error;
         }
-        this.loadError.set(`"${file.name}" is not valid JSON: ${error.message}`);
+        this.loadError.set({ key: 'errors.invalidJson', params: { fileName: file.name } });
         return;
       }
 
@@ -298,7 +340,11 @@ export class App {
         if (!(error instanceof TrainingDataValidationError)) {
           throw error;
         }
-        this.loadError.set(`"${file.name}" is not valid training data: ${error.message}`);
+        this.loadError.set({
+          key: 'errors.invalidTrainingData',
+          params: { fileName: file.name },
+          detail: { key: error.translationKey, params: error.params },
+        });
         return;
       }
 
@@ -348,8 +394,4 @@ export class App {
 
 function createPlanSlot(): PlanSlot {
   return { drillId: null, modificationSelections: {} };
-}
-
-function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
