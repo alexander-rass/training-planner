@@ -20,8 +20,10 @@
   gap: 1.5rem;
 }
 
-.page-header {
-  margin-bottom: 2rem;
+.header-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
 }
 
 .eyebrow,
@@ -94,7 +96,6 @@ summary:focus-visible {
   outline-offset: 2px;
 }
 
-.welcome,
 .filters,
 .stage,
 .share {
@@ -102,10 +103,6 @@ summary:focus-visible {
   border-radius: 1rem;
   background: #fff;
   box-shadow: 0 0.5rem 1.5rem rgb(24 48 32 / 5%);
-}
-
-.welcome {
-  padding: clamp(1.5rem, 5vw, 3rem);
 }
 
 .section-heading p {
@@ -187,21 +184,26 @@ summary:focus-visible {
   margin-bottom: 1rem;
 }
 
-.copy-button {
+.copy-button,
+.download-button {
   min-height: 2.7rem;
   padding: 0.65rem 1rem;
-  border: 0;
   border-radius: 0.55rem;
-  background: #287348;
-  color: #fff;
   cursor: pointer;
   font: inherit;
   font-weight: 700;
 }
 
-.copy-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+.copy-button {
+  border: 0;
+  background: #287348;
+  color: #fff;
+}
+
+.download-button {
+  border: 1px solid #287348;
+  background: #fff;
+  color: #287348;
 }
 
 .share textarea {
@@ -259,10 +261,6 @@ summary:focus-visible {
   border-radius: 0.75rem;
 }
 
-.slot .select-control {
-  max-width: 38rem;
-}
-
 .drill-details {
   margin-top: 1rem;
   color: #37473d;
@@ -272,12 +270,6 @@ summary:focus-visible {
   margin-bottom: 0.75rem;
   line-height: 1.6;
   white-space: pre-wrap;
-}
-
-.drill-details ul {
-  margin: 0.5rem 0 1rem;
-  padding-left: 1.25rem;
-  line-height: 1.55;
 }
 
 .modifications {
@@ -336,6 +328,12 @@ summary:focus-visible {
     align-items: flex-start;
     flex-direction: column;
     gap: 1rem;
+  }
+
+  .header-actions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
   }
 
   .file-picker,

@@ -74,6 +74,7 @@ describe('App', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelectorAll('.slot')).toHaveLength(1);
+    expect(compiled.querySelector('.download-button')?.textContent).toContain('Download JSON copy');
 
     const u11Filter = compiled.querySelector(
       '.additional-filters .filter-chip',

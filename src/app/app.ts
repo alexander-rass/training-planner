@@ -9,6 +9,7 @@ import {
   TrainingDataValidationError,
 } from './training-data';
 import { formatWhatsAppPlan, PlanSlot, StagePlan } from './training-plan';
+import { createJsonDownloadPayload } from './training-data-download';
 
 @Component({
   selector: 'app-root',
@@ -29,6 +30,8 @@ export class App {
   });
   protected readonly copied = signal(false);
   protected readonly copyError = signal<string | null>(null);
+  protected readonly downloadError = signal<string | null>(null);
+  private readonly sourceJsonText = signal<string | null>(null);
 
   protected stages(): StageDefinition[] {
     const data = this.trainingData();
@@ -208,6 +211,48 @@ export class App {
     }
   }
 
+  protected downloadJsonCopy(): void {
+    const sourceFileName = this.loadedFileName();
+    const sourceContent = this.sourceJsonText();
+    if (!sourceFileName || sourceContent === null) {
+      return;
+    }
+
+    this.downloadError.set(null);
+    if (typeof document === 'undefined' || typeof URL.createObjectURL !== 'function') {
+      this.downloadError.set('File download is not available in this browser.');
+      return;
+    }
+
+    const payload = createJsonDownloadPayload(sourceFileName, sourceContent);
+    let objectUrl: string | null = null;
+    let link: HTMLAnchorElement | null = null;
+
+    try {
+      objectUrl = URL.createObjectURL(
+        new Blob([payload.content], { type: 'application/json;charset=utf-8' }),
+      );
+      link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = payload.fileName;
+      link.hidden = true;
+      document.body.appendChild(link);
+      link.click();
+    } catch (error) {
+      this.downloadError.set(`Could not download the JSON file: ${describeError(error)}`);
+    } finally {
+      link?.remove();
+      if (objectUrl !== null) {
+        const urlToRevoke = objectUrl;
+        if (typeof window === 'undefined') {
+          URL.revokeObjectURL(urlToRevoke);
+        } else {
+          window.setTimeout(() => URL.revokeObjectURL(urlToRevoke), 0);
+        }
+      }
+    }
+  }
+
   protected async onFileSelected(event: Event): Promise<void> {
     const input = event.target;
     if (!(input instanceof HTMLInputElement)) {
@@ -256,6 +301,8 @@ export class App {
 
       this.trainingData.set(data);
       this.loadedFileName.set(file.name);
+      this.sourceJsonText.set(contents);
+      this.downloadError.set(null);
       this.selectedLabelIds.set(new Set());
       this.planError.set(null);
       this.resetCopyStatus();

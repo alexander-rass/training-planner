@@ -4,15 +4,22 @@
       <p class="eyebrow">Training planner</p>
       <h1>Build a training session</h1>
     </div>
-    <label class="file-picker">
-      <span>{{ loadedFileName() ? 'Change data file' : 'Load training data' }}</span>
-      <input
-        type="file"
-        accept=".json,application/json"
-        [disabled]="isLoading()"
-        (change)="onFileSelected($event)"
-      />
-    </label>
+    <div class="header-actions">
+      @if (trainingData()) {
+        <button class="download-button" type="button" (click)="downloadJsonCopy()">
+          Download JSON copy
+        </button>
+      }
+      <label class="file-picker">
+        <span>{{ loadedFileName() ? 'Change data file' : 'Load training data' }}</span>
+        <input
+          type="file"
+          accept=".json,application/json"
+          [disabled]="isLoading()"
+          (change)="onFileSelected($event)"
+        />
+      </label>
+    </div>
   </header>
 
   @if (isLoading()) {
@@ -32,6 +39,10 @@
         </p>
       }
     </div>
+  }
+
+  @if (downloadError(); as error) {
+    <p class="message error" role="alert">{{ error }}</p>
   }
 
   @if (trainingData(); as data) {
