@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "catalog": {
+    "stages": [
+      {
+        "id": "warmup",
+        "label": "Warm-up",
+        "order": 1,
+        "defaultDrillCount": 1
+      },
+      {
+        "id": "main",
+        "label": "Main part",
+        "order": 2,
+        "defaultDrillCount": 3
+      },
+      {
+        "id": "funinio",
+        "label": "Funinio / Game",
+        "order": 3,
+        "defaultDrillCount": 1
+      }
+    ],
+    "labels": [
+      { "id": "passing", "label": "Passing" },
+      { "id": "dribbling", "label": "Dribbling" },
+      { "id": "finishing", "label": "Finishing" },
+      { "id": "one-v-one", "label": "1v1" },
+      { "id": "tactical", "label": "Tactical" },
+      { "id": "first-touch", "label": "First touch" },
+      { "id": "u11", "label": "U11" },
+      { "id": "players-4", "label": "4 players" }
+    ],
+    "mainFilterLabelIds": [
+      "passing",
+      "dribbling",
+      "finishing",
+      "one-v-one",
+      "tactical"
+    ],
+    "modifications": [
+      {
+        "id": "player-selection",
+        "label": "Player selection",
+        "type": "single-select",
+        "options": [
+          { "id": "line", "label": "Stand in line" },
+          { "id": "index", "label": "Called by number/index" },
+          { "id": "signal", "label": "Coach visual signal" },
+          { "id": "free-rotation", "label": "Free rotation" }
+        ]
+      },
+      {
+        "id": "intensity",
+        "label": "Intensity / pace",
+        "type": "single-select",
+        "options": [
+          { "id": "low", "label": "Low (technique focus)" },
+          { "id": "medium", "label": "Medium" },
+          { "id": "high", "label": "High (match speed)" }
+        ]
+      },
+      {
+        "id": "touch-limit",
+        "label": "Touch limit",
+        "type": "single-select",
+        "options": [
+          { "id": "free", "label": "Free touches" },
+          { "id": "two", "label": "Max 2 touches" },
+          { "id": "one", "label": "1 touch only" }
+        ]
+      }
+    ]
+  },
+  "drills": [
+    {
+      "id": "drill-001",
+      "title": "4-Cone Passing Diamond",
+      "availableStageIds": ["warmup", "main"],
+      "labelIds": ["passing", "first-touch", "u11", "players-4"],
+      "descriptionMarkdown": "Players pass clockwise around the diamond and follow their pass.",
+      "coachingPoints": [
+        "Open body posture before receiving",
+        "Firm pass to the back foot"
+      ],
+      "modificationIds": ["player-selection", "intensity", "touch-limit"],
+      "diagram": {
+        "fieldType": "half-pitch",
+        "elements": [
+          { "type": "cone", "x": 20, "y": 50, "color": "yellow" },
+          { "type": "player", "x": 18, "y": 50, "team": "A", "label": "1" },
+          { "type": "goal-mini", "x": 80, "y": 30, "rotation": 90 }
+        ]
+      }
+    }
+  ]
+}
