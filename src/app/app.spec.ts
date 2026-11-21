@@ -25,7 +25,7 @@ const trainingDataJson = JSON.stringify({
       title: 'Passing for U11',
       availableStageIds: ['warmup'],
       labelIds: ['passing', 'u11'],
-      descriptionMarkdown: 'Pass and follow your pass.',
+      descriptionMarkdown: 'Pass and **follow your pass**.',
       modificationIds: ['player-selection'],
     },
     {
@@ -90,17 +90,21 @@ describe('App', () => {
     expect(compiled.querySelector('.description')?.textContent).toContain(
       'Pass and follow your pass.',
     );
+    expect(compiled.querySelector('.description strong')?.textContent).toBe('follow your pass');
+    expect(compiled.querySelector('.description')?.textContent).not.toContain('**');
 
     const modificationSelect = compiled.querySelector('.modifications select') as HTMLSelectElement;
     modificationSelect.value = 'line';
     modificationSelect.dispatchEvent(new Event('change'));
     fixture.detectChanges();
     const messagePreview = compiled.querySelector(
-      'textarea[aria-label="WhatsApp message preview"]',
-    ) as HTMLTextAreaElement;
-    expect(messagePreview.value).toContain('*Warm-up*');
-    expect(messagePreview.value).toContain('- *Passing for U11*');
-    expect(messagePreview.value).toContain('- *Player selection:* Stand in line');
+      '[aria-label="Formatted WhatsApp message preview"]',
+    ) as HTMLElement;
+    expect(messagePreview.textContent).toContain('Warm-up');
+    expect(messagePreview.textContent).toContain('Passing for U11');
+    expect(messagePreview.textContent).toContain('Player selection: Stand in line');
+    expect(messagePreview.textContent).not.toContain('*');
+    expect(messagePreview.querySelector('h2')?.textContent).toBe('Warm-up');
 
     const countInput = compiled.querySelector('.count-control input') as HTMLInputElement;
     countInput.value = '0';

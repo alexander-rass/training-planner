@@ -1,4 +1,5 @@
 import { Component, computed, signal } from '@angular/core';
+import { MarkdownPipe } from './markdown.pipe';
 import {
   Drill,
   LabelDefinition,
@@ -8,11 +9,12 @@ import {
   TrainingData,
   TrainingDataValidationError,
 } from './training-data';
-import { formatWhatsAppPlan, PlanSlot, StagePlan } from './training-plan';
+import { formatWhatsAppPlan, PlanSlot, StagePlan, whatsAppToMarkdown } from './training-plan';
 import { createJsonDownloadPayload } from './training-data-download';
 
 @Component({
   selector: 'app-root',
+  imports: [MarkdownPipe],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -28,6 +30,7 @@ export class App {
     const data = this.trainingData();
     return data ? formatWhatsAppPlan(data, this.stagePlans()) : '';
   });
+  protected readonly whatsappPreview = computed(() => whatsAppToMarkdown(this.whatsappMessage()));
   protected readonly copied = signal(false);
   protected readonly copyError = signal<string | null>(null);
   protected readonly downloadError = signal<string | null>(null);

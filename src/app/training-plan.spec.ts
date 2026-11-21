@@ -1,5 +1,10 @@
 import { parseTrainingData } from './training-data';
-import { formatWhatsAppPlan, markdownToWhatsApp, StagePlan } from './training-plan';
+import {
+  formatWhatsAppPlan,
+  markdownToWhatsApp,
+  StagePlan,
+  whatsAppToMarkdown,
+} from './training-plan';
 
 const data = parseTrainingData({
   schemaVersion: 1,
@@ -86,6 +91,18 @@ describe('markdownToWhatsApp', () => {
       ),
     ).toBe(
       '*Coaching points*\nOpen *your body*, _check shoulders_, and ~stop~.\n1. Receive\nPassing (https://example.test)',
+    );
+  });
+});
+
+describe('whatsAppToMarkdown', () => {
+  it('converts WhatsApp formatting markers for a formatted in-app preview', () => {
+    expect(
+      whatsAppToMarkdown(
+        '*Warm-up*\n- *Passing Diamond*\nPlayers **open body**.\n- *Player selection:* Stand in line',
+      ),
+    ).toBe(
+      '## Warm-up\n- **Passing Diamond**\nPlayers **open body**.\n- **Player selection:** Stand in line',
     );
   });
 });

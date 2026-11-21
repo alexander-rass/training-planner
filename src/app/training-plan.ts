@@ -92,6 +92,30 @@ export function markdownToWhatsApp(markdown: string): string {
     .trim();
 }
 
+export function whatsAppToMarkdown(message: string): string {
+  return message
+    .split(/\r?\n/)
+    .map((line) => {
+      const stage = line.match(/^\*([^*]+)\*$/);
+      if (stage) {
+        return `## ${stage[1] ?? ''}`;
+      }
+
+      const modification = line.match(/^- \*([^*]+:)\* (.+)$/);
+      if (modification) {
+        return `- **${modification[1] ?? ''}** ${modification[2] ?? ''}`;
+      }
+
+      const drill = line.match(/^- \*([^*]+)\*$/);
+      if (drill) {
+        return `- **${drill[1] ?? ''}**`;
+      }
+
+      return line.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '**$1**').replace(/~([^~]+)~/g, '~~$1~~');
+    })
+    .join('\n');
+}
+
 function convertInlineMarkdown(text: string): string {
   const boldSegments: string[] = [];
   let converted = text

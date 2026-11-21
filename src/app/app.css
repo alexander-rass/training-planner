@@ -206,8 +206,7 @@ summary:focus-visible {
   color: #287348;
 }
 
-.share textarea {
-  display: block;
+.message-preview {
   width: 100%;
   min-height: 14rem;
   padding: 0.85rem;
@@ -215,12 +214,15 @@ summary:focus-visible {
   border-radius: 0.6rem;
   background: #fbfdfb;
   color: #17231e;
-  font:
-    0.95rem/1.5 Arial,
-    Helvetica,
-    sans-serif;
-  resize: vertical;
-  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.markdown-content > :first-child {
+  margin-top: 0;
+}
+
+.markdown-content > :last-child {
+  margin-bottom: 0;
 }
 
 .empty-share,
@@ -269,7 +271,6 @@ summary:focus-visible {
 .description {
   margin-bottom: 0.75rem;
   line-height: 1.6;
-  white-space: pre-wrap;
 }
 
 .modifications {

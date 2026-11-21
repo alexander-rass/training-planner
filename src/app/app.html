@@ -139,11 +139,16 @@
 
                   @if (drillForSlot(slot); as drill) {
                     <div class="drill-details">
-                      <p class="description">{{ drill.descriptionMarkdown }}</p>
+                      <div
+                        class="description markdown-content"
+                        [innerHTML]="drill.descriptionMarkdown | markdown"
+                      ></div>
                       @if (drill.coachingPoints?.length) {
                         <ul>
                           @for (point of drill.coachingPoints; track $index) {
-                            <li>{{ point }}</li>
+                            <li>
+                              <div class="markdown-content" [innerHTML]="point | markdown"></div>
+                            </li>
                           }
                         </ul>
                       }
@@ -200,12 +205,12 @@
       </div>
 
       @if (whatsappMessage()) {
-        <textarea
-          aria-label="WhatsApp message preview"
-          readonly
-          rows="12"
-          [value]="whatsappMessage()"
-        ></textarea>
+        <div
+          class="message-preview markdown-content"
+          role="region"
+          aria-label="Formatted WhatsApp message preview"
+          [innerHTML]="whatsappPreview() | markdown"
+        ></div>
       } @else {
         <p class="empty-share">Select at least one drill to generate the message.</p>
       }

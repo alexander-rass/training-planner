@@ -109,7 +109,7 @@
       "title": "Funinion game",
       "availableStageIds": ["game"],
       "labelIds": [],
-      "descriptionMarkdown": "Just a simple funinio game.",
+      "descriptionMarkdown": "Just a simple funinio game.\n# FUNINIO\n~~go~~ _italic_",
       "coachingPoints": [
       ],
       "modificationIds": [],
