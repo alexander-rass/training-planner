@@ -1,13 +1,11 @@
 <main class="page">
-  <section class="loader" aria-labelledby="page-title">
-    <p class="eyebrow">Training planner</p>
-    <h1 id="page-title">Load training data</h1>
-    <p class="intro">
-      Choose your training data JSON file to start. The data is only loaded in this browser session.
-    </p>
-
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Training planner</p>
+      <h1>Build a training session</h1>
+    </div>
     <label class="file-picker">
-      <span>Choose a JSON file</span>
+      <span>{{ loadedFileName() ? 'Change data file' : 'Load training data' }}</span>
       <input
         type="file"
         accept=".json,application/json"
@@ -15,38 +13,168 @@
         (change)="onFileSelected($event)"
       />
     </label>
+  </header>
 
-    @if (isLoading()) {
-      <p class="loading" role="status">Reading and validating file...</p>
-    }
+  @if (isLoading()) {
+    <p class="message loading" role="status">Reading and validating file...</p>
+  }
 
-    @if (loadError(); as error) {
-      <div class="message error" role="alert">
-        <strong>Could not load training data</strong>
-        <p>{{ error }}</p>
-        @if (trainingData(); as loadedData) {
-          <p>
-            The previously loaded file "{{ loadedFileName() }}" is still active ({{
-              loadedData.drills.length
-            }}
-            drills).
-          </p>
+  @if (loadError(); as error) {
+    <div class="message error" role="alert">
+      <strong>Could not load training data</strong>
+      <p>{{ error }}</p>
+      @if (trainingData(); as loadedData) {
+        <p>
+          The previously loaded file "{{ loadedFileName() }}" is still active ({{
+            loadedData.drills.length
+          }}
+          drills).
+        </p>
+      }
+    </div>
+  }
+
+  @if (trainingData(); as data) {
+    <section class="filters" aria-labelledby="filters-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="filters-heading">Filter drills by label</h2>
+          <p>When you select multiple labels, a drill must have all of them.</p>
+        </div>
+        @if (selectedLabelIds().size > 0) {
+          <button class="text-button" type="button" (click)="clearLabelFilters()">
+            Clear filters
+          </button>
         }
       </div>
+
+      <div class="filter-list" aria-label="Main filters">
+        @for (label of mainFilterLabels(); track label.id) {
+          <button
+            class="filter-chip"
+            [class.selected]="isLabelSelected(label.id)"
+            [attr.aria-pressed]="isLabelSelected(label.id)"
+            type="button"
+            (click)="toggleLabel(label.id)"
+          >
+            {{ label.label }}
+          </button>
+        }
+      </div>
+
+      @if (additionalFilterLabels().length > 0) {
+        <details class="additional-filters">
+          <summary>More labels ({{ additionalFilterLabels().length }})</summary>
+          <div class="filter-list">
+            @for (label of additionalFilterLabels(); track label.id) {
+              <button
+                class="filter-chip"
+                [class.selected]="isLabelSelected(label.id)"
+                [attr.aria-pressed]="isLabelSelected(label.id)"
+                type="button"
+                (click)="toggleLabel(label.id)"
+              >
+                {{ label.label }}
+              </button>
+            }
+          </div>
+        </details>
+      }
+    </section>
+
+    @if (planError(); as error) {
+      <p class="message error" role="alert">{{ error }}</p>
     }
 
-    @if (trainingData(); as data) {
-      <div class="message success" role="status">
-        <strong>Training data loaded</strong>
-        <p>
-          {{ loadedFileName() }}: {{ data.catalog.stages.length }} stages,
-          {{ data.catalog.labels.length }} labels,
-          {{ data.drills.length }}
-          {{ data.drills.length === 1 ? 'drill' : 'drills' }}.
-        </p>
-      </div>
-    } @else if (!loadError() && !isLoading()) {
-      <p class="hint">No training data loaded yet.</p>
-    }
-  </section>
+    <section class="stages" aria-label="Training stages">
+      @for (stage of stages(); track stage.id) {
+        <article class="stage">
+          <header class="stage-header">
+            <div>
+              <p class="stage-number">Stage {{ stage.order }}</p>
+              <h2>{{ stage.label }}</h2>
+            </div>
+            <label class="count-control">
+              <span>Number of drills</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                [value]="slotsForStage(stage.id).length"
+                (change)="onDrillCountChanged(stage.id, $event)"
+              />
+            </label>
+          </header>
+
+          @if (slotsForStage(stage.id).length === 0) {
+            <p class="empty-stage">No drills selected for this stage.</p>
+          } @else {
+            <div class="slots">
+              @for (slot of slotsForStage(stage.id); track $index; let index = $index) {
+                <section class="slot">
+                  <h3>Drill {{ index + 1 }}</h3>
+                  <label class="select-control">
+                    <span>Choose a drill</span>
+                    <select
+                      [value]="slot.drillId ?? ''"
+                      (change)="onDrillSelected(stage.id, index, $event)"
+                    >
+                      <option value="">Select a drill...</option>
+                      @for (drill of selectableDrills(stage.id, slot.drillId); track drill.id) {
+                        <option [value]="drill.id">{{ drill.title }}</option>
+                      }
+                    </select>
+                  </label>
+
+                  @if (drillForSlot(slot); as drill) {
+                    <div class="drill-details">
+                      <p class="description">{{ drill.descriptionMarkdown }}</p>
+                      @if (drill.coachingPoints?.length) {
+                        <ul>
+                          @for (point of drill.coachingPoints; track $index) {
+                            <li>{{ point }}</li>
+                          }
+                        </ul>
+                      }
+
+                      @if (modificationsForDrill(drill).length > 0) {
+                        <div class="modifications">
+                          @for (
+                            modification of modificationsForDrill(drill);
+                            track modification.id
+                          ) {
+                            <label class="select-control">
+                              <span>{{ modification.label }}</span>
+                              <select
+                                [value]="slot.modificationSelections[modification.id] ?? ''"
+                                (change)="
+                                  onModificationSelected(stage.id, index, modification, $event)
+                                "
+                              >
+                                <option value="">Choose an option...</option>
+                                @for (option of modification.options; track option.id) {
+                                  <option [value]="option.id">{{ option.label }}</option>
+                                }
+                              </select>
+                            </label>
+                          }
+                        </div>
+                      }
+                    </div>
+                  } @else if (selectableDrills(stage.id, slot.drillId).length === 0) {
+                    <p class="empty-slot">No drills match these labels for this stage.</p>
+                  }
+                </section>
+              }
+            </div>
+          }
+        </article>
+      }
+    </section>
+  } @else if (!loadError() && !isLoading()) {
+    <section class="welcome">
+      <h1>Load your training data to begin</h1>
+      <p>Select the JSON file containing your stages, labels, modifications, and drills.</p>
+    </section>
+  }
 </main>

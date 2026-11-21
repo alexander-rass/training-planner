@@ -92,6 +92,17 @@
           { "type": "goal-mini", "x": 80, "y": 30, "rotation": 90 }
         ]
       }
+    },
+    {
+      "id": "drill-002",
+      "title": "run around",
+      "availableStageIds": ["warmup"],
+      "labelIds": ["passing"],
+      "descriptionMarkdown": "Players run around the field in a continuous loop.",
+      "coachingPoints": [
+      ],
+      "modificationIds": [],
+      "diagram": null
     }
   ]
 }
