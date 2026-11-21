@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "name": "SCA JG 2020",
+  "catalog": {
+    "stages": [
+      {
+        "id": "warmup",
+        "label": "Warm-up",
+        "order": 1,
+        "defaultDrillCount": 1
+      },
+      {
+        "id": "main",
+        "label": "Hauptteil",
+        "order": 2,
+        "defaultDrillCount": 3
+      },
+      {
+        "id": "game",
+        "label": "Abschluss",
+        "order": 3,
+        "defaultDrillCount": 1
+      }
+    ],
+    "labels": [
+      { "id": "passing", "label": "Passen" },
+      { "id": "goalkick", "label": "Torschuss" },
+      { "id": "dribbling", "label": "Dribbling" },
+      { "id": "one-vs-one", "label": "1vs1" },
+      { "id": "tactical", "label": "Taktik" },
+      { "id": "coordination", "label": "Koordination" }
+    ],
+    "mainFilterLabelIds": [
+      "passing",
+      "goalkick",
+      "dribbling",
+      "one-vs-one",
+      "tactical",
+      "coordination"
+    ],
+    "modifications": [
+      {
+        "id": "player-selection-single",
+        "label": "Spielerauswahl",
+        "type": "single-select",
+        "options": [
+          { "id": "line", "label": "In einer Reihe aufstellen" },
+          { "id": "index", "label": "Mit Nummern aufrufen" }
+        ]
+      },
+      {
+        "id": "player-selection-two",
+        "label": "Spielerauswahl",
+        "type": "single-select",
+        "options": [
+          { "id": "line", "label": "In zwei Reihen aufstellen" },
+          { "id": "index", "label": "Mit Nummern aufrufen" }
+        ]
+      },
+      {
+        "id": "intensity",
+        "label": "Intensität / Tempo",
+        "type": "single-select",
+        "options": [
+          { "id": "low", "label": "Technikfokus - niedriges Tempo" },
+          { "id": "medium", "label": "Mittleres Tempo" },
+          { "id": "high", "label": "Hohes Tempo (Matchgeschwindigkeit)" }
+        ]
+      },
+      {
+        "id": "touch-limit",
+        "label": "Kontaktbegrenzung",
+        "type": "single-select",
+        "options": [
+          { "id": "free", "label": "Beliebige Anzahl" },
+          { "id": "two", "label": "Max 2 Kontakte" },
+          { "id": "one", "label": "Nur 1 Kontakt" }
+        ]
+      }
+    ]
+  },
+  "drills": [
+    {
+      "id": "warmup-001",
+      "title": "Leibchen fangen",
+      "availableStageIds": ["warmup"],
+      "labelIds": [],
+      "descriptionMarkdown": "Die Spieler laufen frei auf dem Feld umher. Ein Spieler ist der Fänger und versucht, die Leibchen der anderen Spieler zu fangen. Wer gefangen wird, wird selbst zum Fänger.",
+      "coachingPoints": [
+        "Alle Kinder sollen sich bewegen"
+      ],
+      "modificationIds": [],
+      "diagram": null
+    },
+    {
+      "id": "warmup-002",
+      "title": "Feuer Wasser Blitz - mit Aktionsansage",
+      "availableStageIds": ["warmup"],
+      "labelIds": ["dribbling"],
+      "descriptionMarkdown": "Dribblen im Feld. Auf das Kommando des Trainers hin, müssen die Spieler reagieren.\nMögliche Kommandos:\n- Mit linken/rechten Fuß auf den Ball tippen\n- auf den Ball setzen\n- über den Ball hüpfen",
+      "coachingPoints": [
+        "Alle Kinder sollen sich bewegen"
+      ],
+      "modificationIds": [],
+      "diagram": null
+    },
+    {
+      "id": "warmup-003",
+      "title": "Feuer Wasser Blitz - mit Zieldribbeln",
+      "availableStageIds": ["warmup"],
+      "labelIds": ["dribbling"],
+      "descriptionMarkdown": "Dribblen im Feld. Auf das Kommando des Trainers hin, müssen die Spieler reagieren.\nSo schnell wie möglich in eine Ecke des Feldes dribbeln.\nGgf. durch Leibchen oder Hütchen markieren.",
+      "coachingPoints": [
+        "Alle Kinder sollen sich bewegen"
+      ],
+      "modificationIds": [],
+      "diagram": null
+    },
+    {
+      "id": "main-001",
+      "title": "Torschussübung - Dribblen durch Stangen - Doppelpass mit Trainer - 2 Gruppen",
+      "availableStageIds": ["main"],
+      "labelIds": ["goalkick", "dribbling"],
+      "descriptionMarkdown": "Spieler in zwei Gruppen aufteilen. Der nächste Spieler in der Reihe dribbelt durch die Stangen, spielt einen Doppelpass mit dem Trainer und schießt anschließend auf das Tor.",
+      "coachingPoints": [],
+      "modificationIds": [],
+      "diagram": null
+    },
+    {
+      "id": "main-002",
+      "title": "Dribbel-Parcours",
+      "availableStageIds": ["main"],
+      "labelIds": ["dribbling", "goalkick"],
+      "descriptionMarkdown": "Mit dem Ball im Slalom um die Hütchen dribbeln. Anschließend auf das Tor schießen.",
+      "coachingPoints": [
+        "Ziel: Ballkontrolle, Richtungswechsel, Ballführung"
+      ],
+      "modificationIds": [],
+      "diagram": null
+    },
+    {
+      "id": "main-003",
+      "title": "Torschusswettbewerb",
+      "availableStageIds": ["main"],
+      "labelIds": ["goalkick"],
+      "descriptionMarkdown": "Es werden Hütchen in unterschiedlichen Abständen vom Tor aufgestellt. Es gibt mehrere Torschussrunden. Jedes mal wenn man ins Tor trifft, darf man in der nächsten Runde ein Hütchen weiter weg vom Tor aufstellen. Wer am weitesten weg vom Tor trifft, gewinnt.",
+      "coachingPoints": [
+        "Ziel: Freude am Toreschießen, Schusstechnik"
+      ],
+      "modificationIds": [],
+      "diagram": null
+    },
+    {
+      "id": "main-004",
+      "title": "Passstation",
+      "availableStageIds": ["main"],
+      "labelIds": ["passing"],
+      "descriptionMarkdown": "Jeweils zwei Spieler bilden eine Gruppe. Die Spieler stellen sich ca. 3-5 Meter auseinander und passen sich den Ball zu.\nVariante: Der Ball muss durch ein Hütchentor gespielt werden.",
+      "coachingPoints": [
+        "Ziel: Genauigkeit, Zusammenspiel"
+      ],
+      "modificationIds": [],
+      "diagram": null
+    },
+    {
+      "id": "main-005",
+      "title": "Koordinationsübung",
+      "availableStageIds": ["main"],
+      "labelIds": ["coordination"],
+      "descriptionMarkdown": "- Ball in die Hand nehmen.\n- Hüpfen durch Reifen\n- seitliche Sprünge über Hütchen\n- danach Ball ablegen und Torschuss.",
+      "coachingPoints": [],
+      "modificationIds": [],
+      "diagram": null
+    },
+    {
+      "id": "game-001",
+      "title": "Funinio",
+      "availableStageIds": ["game"],
+      "labelIds": [],
+      "descriptionMarkdown": "Wir spielen Funinio.",
+      "coachingPoints": [
+      ],
+      "modificationIds": [],
+      "diagram": null
+    }
+  ]
+}
