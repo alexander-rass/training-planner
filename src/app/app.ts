@@ -41,6 +41,7 @@ export class App {
 
   protected readonly trainingData = signal<TrainingData | null>(null);
   protected readonly loadedFileName = signal<string | null>(null);
+  protected readonly selectedLocalFileName = signal<string | null>(null);
   protected readonly loadError = signal<TranslationMessage | null>(null);
   protected readonly datasetCatalogError = signal<TranslationMessage | null>(null);
   protected readonly availableDatasets = signal<TrainingDatasetDefinition[]>([]);
@@ -363,6 +364,7 @@ export class App {
     if (!file) {
       return;
     }
+    this.selectedLocalFileName.set(file.name);
     input.value = '';
 
     this.loadError.set(null);
@@ -436,6 +438,7 @@ export class App {
 
     this.trainingData.set(data);
     this.loadedFileName.set(fileName);
+    this.selectedLocalFileName.set(datasetId === null ? fileName : null);
     this.sourceJsonText.set(contents);
     this.selectedDatasetId.set(datasetId ?? '');
     this.downloadError.set(null);

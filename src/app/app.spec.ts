@@ -115,6 +115,8 @@ describe('App', () => {
     expect(compiled.querySelector('.page-header h1')?.textContent).toContain(
       'Trainingseinheit planen',
     );
+    expect(compiled.querySelector('.file-picker button')?.textContent).toContain('Datei auswählen');
+    expect(compiled.querySelector('.file-name')?.textContent).toContain('Keine Datei ausgewählt');
 
     languageSelect.value = 'en';
     languageSelect.dispatchEvent(new Event('change'));
@@ -124,6 +126,8 @@ describe('App', () => {
     expect(compiled.querySelector('.page-header h1')?.textContent).toContain(
       'Build a training session',
     );
+    expect(compiled.querySelector('.file-picker button')?.textContent).toContain('Choose file');
+    expect(compiled.querySelector('.file-name')?.textContent).toContain('No file selected');
     expect(document.title).toBe('Training planner');
     expect(document.documentElement.lang).toBe('en');
   });
@@ -150,6 +154,7 @@ describe('App', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelectorAll('.slot')).toHaveLength(1);
     expect(compiled.querySelector('.download-button')).not.toBeNull();
+    expect(compiled.querySelector('.file-name')?.textContent).toContain('pilot-data.json');
 
     const u11Filter = compiled.querySelector(
       '.additional-filters .filter-chip',

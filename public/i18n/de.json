@@ -20,7 +20,9 @@
   "header": {
     "downloadJson": "JSON-Kopie herunterladen",
     "changeData": "Datendatei wechseln",
-    "loadData": "Trainingsdaten laden"
+    "loadData": "Trainingsdaten laden",
+    "chooseFile": "Datei auswählen",
+    "noFileSelected": "Keine Datei ausgewählt"
   },
   "status": {
     "readingFile": "Datei wird gelesen und überprüft ..."

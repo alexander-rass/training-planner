@@ -38,17 +38,32 @@
           {{ 'header.downloadJson' | translate }}
         </button>
       }
-      <label class="file-picker">
+      <div class="file-picker">
         <span>
           {{ (loadedFileName() ? 'header.changeData' : 'header.loadData') | translate }}
         </span>
-        <input
-          type="file"
-          accept=".json,application/json"
-          [disabled]="isLoading()"
-          (change)="onFileSelected($event)"
-        />
-      </label>
+        <div class="file-picker-controls">
+          <button
+            class="download-button"
+            type="button"
+            [disabled]="isLoading()"
+            (click)="fileInput.click()"
+          >
+            {{ 'header.chooseFile' | translate }}
+          </button>
+          <input
+            #fileInput
+            type="file"
+            accept=".json,application/json"
+            hidden
+            [disabled]="isLoading()"
+            (change)="onFileSelected($event)"
+          />
+          <span class="file-name" aria-live="polite">
+            {{ selectedLocalFileName() ?? ('header.noFileSelected' | translate) }}
+          </span>
+        </div>
+      </div>
     </div>
   </header>
 

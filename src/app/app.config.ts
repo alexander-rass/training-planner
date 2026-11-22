@@ -9,6 +9,7 @@ import { provideRouter } from '@angular/router';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { routes } from './app.routes';
+import { getPreferredLanguage } from './preferred-language';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -26,7 +27,11 @@ export const appConfig: ApplicationConfig = {
     }),
     provideAppInitializer(() => {
       const translate = inject(TranslateService);
-      return translate.use('de');
+      const browserLanguages =
+        typeof navigator === 'undefined'
+          ? []
+          : [...(navigator.languages ?? []), navigator.language];
+      return translate.use(getPreferredLanguage(browserLanguages));
     }),
   ],
 };

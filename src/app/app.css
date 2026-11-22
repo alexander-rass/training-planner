@@ -68,7 +68,6 @@ h3 {
   font-weight: 700;
 }
 
-.file-picker input,
 .select-control select,
 .count-control input {
   width: 100%;
@@ -81,13 +80,17 @@ h3 {
   font: inherit;
 }
 
-.file-picker input {
-  max-width: 20rem;
-  padding: 0.4rem;
-  font-size: 0.85rem;
+.file-picker-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.file-picker input:focus-visible,
+.file-name {
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
 .select-control select:focus-visible,
 .count-control input:focus-visible,
 button:focus-visible,
@@ -338,7 +341,7 @@ summary:focus-visible {
   }
 
   .file-picker,
-  .file-picker input {
+  .file-picker-controls {
     width: 100%;
     max-width: none;
   }

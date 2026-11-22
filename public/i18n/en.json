@@ -20,7 +20,9 @@
   "header": {
     "downloadJson": "Download JSON copy",
     "changeData": "Change data file",
-    "loadData": "Load training data"
+    "loadData": "Load training data",
+    "chooseFile": "Choose file",
+    "noFileSelected": "No file selected"
   },
   "status": {
     "readingFile": "Reading and validating file ..."
