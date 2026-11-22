@@ -10,7 +10,11 @@ export interface StagePlan {
   slots: PlanSlot[];
 }
 
-export function formatWhatsAppPlan(data: TrainingData, plans: StagePlan[]): string {
+export function formatWhatsAppPlan(
+  data: TrainingData,
+  plans: StagePlan[],
+  coachingPointsLabel: string,
+): string {
   const stagePlansById = new Map(plans.map((plan) => [plan.stageId, plan]));
   const drillsById = new Map(data.drills.map((drill) => [drill.id, drill]));
   const modificationsById = new Map(
@@ -40,6 +44,14 @@ export function formatWhatsAppPlan(data: TrainingData, plans: StagePlan[]): stri
       const description = markdownToWhatsApp(drill.descriptionMarkdown);
       if (description) {
         lines.push(indentContinuation(description));
+      }
+
+      const coachingPoints = (drill.coachingPoints ?? [])
+        .map((point) => markdownToWhatsApp(point))
+        .filter((point) => point.length > 0);
+      if (coachingPoints.length > 0) {
+        lines.push(`  *${coachingPointsLabel}:*`);
+        lines.push(...coachingPoints.map((point) => `  - ${point.replace(/\n/g, '\n    ')}`));
       }
 
       for (const modificationId of drill.modificationIds) {

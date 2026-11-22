@@ -63,7 +63,8 @@
     "slotNumber": "Übung {{index}}",
     "choose": "Übung auswählen",
     "selectPlaceholder": "Übung auswählen ...",
-    "noLabelMatches": "Keine Übung passt zu diesen Labels und dieser Phase."
+    "noLabelMatches": "Keine Übung passt zu diesen Labels und dieser Phase.",
+    "coachingPoints": "Coaching-Punkte"
   },
   "modifications": {
     "chooseOption": "Option auswählen ..."

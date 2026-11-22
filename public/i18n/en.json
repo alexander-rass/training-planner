@@ -63,7 +63,8 @@
     "slotNumber": "Drill {{index}}",
     "choose": "Choose a drill",
     "selectPlaceholder": "Select a drill ...",
-    "noLabelMatches": "No drills match these labels for this stage."
+    "noLabelMatches": "No drills match these labels for this stage.",
+    "coachingPoints": "Coaching points"
   },
   "modifications": {
     "chooseOption": "Choose an option ..."

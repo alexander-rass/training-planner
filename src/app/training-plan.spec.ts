@@ -32,6 +32,7 @@ const data = parseTrainingData({
       availableStageIds: ['warmup', 'main'],
       labelIds: ['passing'],
       descriptionMarkdown: 'Players form a diamond (**10m x 10m**).\n- Pass to _the back foot_.',
+      coachingPoints: ['Keep **moving**.'],
       modificationIds: ['player-selection'],
     },
   ],
@@ -56,18 +57,22 @@ describe('formatWhatsAppPlan', () => {
       { stageId: 'game', slots: [{ drillId: null, modificationSelections: {} }] },
     ];
 
-    expect(formatWhatsAppPlan(data, plans)).toBe(
+    expect(formatWhatsAppPlan(data, plans, 'Coaching points')).toBe(
       [
         '*Warm-up*',
         '- *Passing Diamond*',
         '  Players form a diamond (*10m x 10m*).',
         '  - Pass to _the back foot_.',
+        '  *Coaching points:*',
+        '  - Keep *moving*.',
         '  - *Player selection:* Called by number/index',
         '',
         '*Main part*',
         '- *Passing Diamond*',
         '  Players form a diamond (*10m x 10m*).',
         '  - Pass to _the back foot_.',
+        '  *Coaching points:*',
+        '  - Keep *moving*.',
       ].join('\n'),
     );
   });
@@ -79,7 +84,7 @@ describe('formatWhatsAppPlan', () => {
       { stageId: 'game', slots: [{ drillId: null, modificationSelections: {} }] },
     ];
 
-    expect(formatWhatsAppPlan(data, plans)).toBe('');
+    expect(formatWhatsAppPlan(data, plans, 'Coaching points')).toBe('');
   });
 });
 

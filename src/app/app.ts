@@ -28,6 +28,8 @@ interface TranslationMessage {
 export class App {
   private readonly translate = inject(TranslateService);
   private readonly translatedDocumentTitle = this.translate.translate('app.documentTitle');
+  private readonly translatedCoachingPointsLabel =
+    this.translate.translate('drills.coachingPoints');
 
   protected readonly trainingData = signal<TrainingData | null>(null);
   protected readonly loadedFileName = signal<string | null>(null);
@@ -40,7 +42,14 @@ export class App {
   protected readonly languageError = signal<TranslationMessage | null>(null);
   protected readonly whatsappMessage = computed(() => {
     const data = this.trainingData();
-    return data ? formatWhatsAppPlan(data, this.stagePlans()) : '';
+    const translatedLabel = this.translatedCoachingPointsLabel();
+    return data
+      ? formatWhatsAppPlan(
+          data,
+          this.stagePlans(),
+          typeof translatedLabel === 'string' ? translatedLabel : 'Coaching points',
+        )
+      : '';
   });
   protected readonly whatsappPreview = computed(() => whatsAppToMarkdown(this.whatsappMessage()));
   protected readonly copied = signal(false);

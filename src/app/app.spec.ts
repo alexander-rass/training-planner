@@ -30,6 +30,7 @@ const trainingDataJson = JSON.stringify({
       availableStageIds: ['warmup'],
       labelIds: ['passing', 'u11'],
       descriptionMarkdown: 'Pass and **follow your pass**.',
+      coachingPoints: ['Keep **moving**.'],
       modificationIds: ['player-selection'],
     },
     {
@@ -141,6 +142,8 @@ describe('App', () => {
     );
     expect(compiled.querySelector('.description strong')?.textContent).toBe('follow your pass');
     expect(compiled.querySelector('.description')?.textContent).not.toContain('**');
+    expect(compiled.querySelector('.coaching-points h4')?.textContent).toBe('Coaching-Punkte');
+    expect(compiled.querySelector('.coaching-points li')?.textContent).toContain('Keep moving.');
 
     const modificationSelect = compiled.querySelector('.modifications select') as HTMLSelectElement;
     modificationSelect.value = 'line';
@@ -149,6 +152,8 @@ describe('App', () => {
     const messagePreview = compiled.querySelector('.message-preview') as HTMLElement;
     expect(messagePreview.textContent).toContain('Warm-up');
     expect(messagePreview.textContent).toContain('Passing for U11');
+    expect(messagePreview.textContent).toContain('Coaching-Punkte');
+    expect(messagePreview.textContent).toContain('Keep moving.');
     expect(messagePreview.textContent).toContain('Player selection: Stand in line');
     expect(messagePreview.textContent).not.toContain('*');
     expect(messagePreview.querySelector('h2')?.textContent).toBe('Warm-up');

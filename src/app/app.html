@@ -161,13 +161,16 @@
                         [innerHTML]="drill.descriptionMarkdown | markdown"
                       ></div>
                       @if (drill.coachingPoints?.length) {
-                        <ul>
-                          @for (point of drill.coachingPoints; track $index) {
-                            <li>
-                              <div class="markdown-content" [innerHTML]="point | markdown"></div>
-                            </li>
-                          }
-                        </ul>
+                        <section class="coaching-points">
+                          <h4>{{ 'drills.coachingPoints' | translate }}</h4>
+                          <ul>
+                            @for (point of drill.coachingPoints; track $index) {
+                              <li>
+                                <div class="markdown-content" [innerHTML]="point | markdown"></div>
+                              </li>
+                            }
+                          </ul>
+                        </section>
                       }
 
                       @if (modificationsForDrill(drill).length > 0) {
