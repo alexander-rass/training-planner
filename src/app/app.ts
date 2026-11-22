@@ -96,6 +96,11 @@ export class App {
       return;
     }
 
+    if (!this.confirmDataReplacement(dataset.name)) {
+      select.value = this.selectedDatasetId();
+      return;
+    }
+
     this.loadError.set(null);
     this.isLoading.set(true);
 
@@ -364,9 +369,13 @@ export class App {
     if (!file) {
       return;
     }
-    this.selectedLocalFileName.set(file.name);
     input.value = '';
 
+    if (!this.confirmDataReplacement(file.name)) {
+      return;
+    }
+
+    this.selectedLocalFileName.set(file.name);
     this.loadError.set(null);
     this.isLoading.set(true);
 
@@ -407,6 +416,18 @@ export class App {
         this.isDatasetCatalogLoading.set(false);
       },
     });
+  }
+
+  private confirmDataReplacement(name: string): boolean {
+    if (!this.trainingData()) {
+      return true;
+    }
+
+    const message = this.translate.instant('datasets.overwriteConfirmation', { name });
+    if (typeof message !== 'string') {
+      throw new Error('The dataset replacement confirmation must be a string.');
+    }
+    return typeof window === 'undefined' || window.confirm(message);
   }
 
   private applyTrainingData(contents: string, fileName: string, datasetId: string | null): void {

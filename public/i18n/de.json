@@ -15,7 +15,8 @@
     "placeholder": "Trainingsdatensatz auswählen ...",
     "catalogLoadFailed": "Die Liste der vordefinierten Trainingsdatensätze konnte nicht geladen werden.",
     "catalogInvalid": "Die Liste der vordefinierten Trainingsdatensätze ist ungültig.",
-    "fileLoadFailed": "Der Trainingsdatensatz „{{name}}“ konnte nicht geladen werden."
+    "fileLoadFailed": "Der Trainingsdatensatz „{{name}}“ konnte nicht geladen werden.",
+    "overwriteConfirmation": "Das Laden von „{{name}}“ ersetzt die aktuell geladenen Trainingsdaten und den Trainingsplan. Möchtest du fortfahren?"
   },
   "header": {
     "downloadJson": "JSON-Kopie herunterladen",

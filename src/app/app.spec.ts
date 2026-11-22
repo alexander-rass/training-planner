@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
+import { vi } from 'vitest';
 import { App } from './app';
 import deTranslations from '../../public/i18n/de.json';
 import enTranslations from '../../public/i18n/en.json';
@@ -92,6 +93,7 @@ describe('App', () => {
 
   afterEach(() => {
     TestBed.inject(HttpTestingController).verify();
+    vi.restoreAllMocks();
   });
 
   it('should create the app', async () => {
@@ -201,6 +203,7 @@ describe('App', () => {
     const fixture = await createAppFixture();
     const compiled = fixture.nativeElement as HTMLElement;
     const datasetSelect = compiled.querySelector('.dataset-picker select') as HTMLSelectElement;
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     datasetSelect.value = 'sca-jg-2020';
     datasetSelect.dispatchEvent(new Event('change'));
@@ -212,5 +215,94 @@ describe('App', () => {
 
     expect(datasetSelect.value).toBe('sca-jg-2020');
     expect(compiled.querySelector('.stage h2')?.textContent).toBe('Warm-up');
+    expect(confirmSpy).not.toHaveBeenCalled();
+  });
+
+  it('keeps the current plan when replacement with a named dataset is canceled', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const initialFile = { name: 'pilot-data.json', text: async () => trainingDataJson };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [initialFile] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const drillSelect = compiled.querySelector('.slot .select-control select') as HTMLSelectElement;
+    drillSelect.value = 'drill-001';
+    drillSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const datasetSelect = compiled.querySelector('.dataset-picker select') as HTMLSelectElement;
+    datasetSelect.value = 'sca-jg-2020';
+    datasetSelect.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('SCA JG 2020'));
+    expect(datasetSelect.value).toBe('');
+    expect(
+      (compiled.querySelector('.slot .select-control select') as HTMLSelectElement).value,
+    ).toBe('drill-001');
+    TestBed.inject(HttpTestingController).expectNone('data/sca_jg2020_data.json');
+  });
+
+  it('loads a named dataset after confirming replacement', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const initialFile = { name: 'pilot-data.json', text: async () => trainingDataJson };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [initialFile] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const datasetSelect = compiled.querySelector('.dataset-picker select') as HTMLSelectElement;
+    datasetSelect.value = 'sca-jg-2020';
+    datasetSelect.dispatchEvent(new Event('change'));
+    TestBed.inject(HttpTestingController)
+      .expectOne('data/sca_jg2020_data.json')
+      .flush(JSON.stringify(scaJg2020Data));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('SCA JG 2020'));
+    expect(compiled.querySelectorAll('.stage')).toHaveLength(3);
+    expect(datasetSelect.value).toBe('sca-jg-2020');
+  });
+
+  it('does not read a replacement JSON file when its confirmation is canceled', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const initialFile = { name: 'pilot-data.json', text: async () => trainingDataJson };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [initialFile] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const drillSelect = compiled.querySelector('.slot .select-control select') as HTMLSelectElement;
+    drillSelect.value = 'drill-001';
+    drillSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const replacementFile = {
+      name: 'replacement.json',
+      text: vi.fn().mockResolvedValue(trainingDataJson),
+    };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [replacementFile] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('replacement.json'));
+    expect(replacementFile.text).not.toHaveBeenCalled();
+    expect(compiled.querySelector('.file-name')?.textContent).toContain('pilot-data.json');
+    expect(
+      (compiled.querySelector('.slot .select-control select') as HTMLSelectElement).value,
+    ).toBe('drill-001');
   });
 });
