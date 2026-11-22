@@ -74,7 +74,8 @@
           "builder": "angular-cli-ghpages:deploy",
           "options": {
             "dir": "dist/training-planner/browser",
-            "baseHref": "/training-planner/"
+            "baseHref": "/training-planner/",
+            "noBuild": true
           }
         }
       }
