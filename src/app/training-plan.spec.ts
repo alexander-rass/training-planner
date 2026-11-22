@@ -98,6 +98,12 @@ describe('markdownToWhatsApp', () => {
       '*Coaching points*\nOpen *your body*, _check shoulders_, and ~stop~.\n1. Receive\nPassing (https://example.test)',
     );
   });
+
+  it('omits remote image URLs from the copied WhatsApp text', () => {
+    expect(markdownToWhatsApp('![training diagram](https://tracker.example/pixel.png)')).toBe(
+      'training diagram',
+    );
+  });
 });
 
 describe('whatsAppToMarkdown', () => {

@@ -138,7 +138,7 @@ function indentContinuation(text: string): string {
 function convertInlineMarkdown(text: string): string {
   const boldSegments: string[] = [];
   let converted = text
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1 ($2)')
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
     .replace(/~~([^~]+)~~/g, '~$1~')
     .replace(/\*\*([^*]+)\*\*|__([^_]+)__/g, (_match, a: string, b: string) => {
