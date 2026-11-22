@@ -2,6 +2,8 @@
 
 A static Angular application for planning soccer training sessions. It runs in the browser and has no application server or backend.
 
+For suggested next steps and context to carry into a new Copilot session, see [`ROADMAP.md`](./ROADMAP.md).
+
 ## Current features
 
 - Load training data from a local JSON file or select a preloaded dataset.
