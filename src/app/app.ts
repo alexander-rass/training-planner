@@ -1,5 +1,7 @@
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { firstValueFrom } from 'rxjs';
 import { MarkdownPipe } from './markdown.pipe';
 import {
   Drill,
@@ -12,6 +14,11 @@ import {
 } from './training-data';
 import { formatWhatsAppPlan, PlanSlot, StagePlan, whatsAppToMarkdown } from './training-plan';
 import { createJsonDownloadPayload } from './training-data-download';
+import {
+  parseTrainingDatasetCatalog,
+  TrainingDatasetCatalogError,
+  TrainingDatasetDefinition,
+} from './training-datasets';
 
 interface TranslationMessage {
   key: string;
@@ -26,6 +33,7 @@ interface TranslationMessage {
   styleUrl: './app.css',
 })
 export class App {
+  private readonly http = inject(HttpClient);
   private readonly translate = inject(TranslateService);
   private readonly translatedDocumentTitle = this.translate.translate('app.documentTitle');
   private readonly translatedCoachingPointsLabel =
@@ -34,6 +42,10 @@ export class App {
   protected readonly trainingData = signal<TrainingData | null>(null);
   protected readonly loadedFileName = signal<string | null>(null);
   protected readonly loadError = signal<TranslationMessage | null>(null);
+  protected readonly datasetCatalogError = signal<TranslationMessage | null>(null);
+  protected readonly availableDatasets = signal<TrainingDatasetDefinition[]>([]);
+  protected readonly isDatasetCatalogLoading = signal(true);
+  protected readonly selectedDatasetId = signal('');
   protected readonly planError = signal<TranslationMessage | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly selectedLabelIds = signal<ReadonlySet<string>>(new Set());
@@ -58,6 +70,7 @@ export class App {
   private readonly sourceJsonText = signal<string | null>(null);
 
   constructor() {
+    this.loadDatasetCatalog();
     effect(() => {
       const title = this.translatedDocumentTitle();
       const language = this.currentLanguage();
@@ -68,6 +81,39 @@ export class App {
         document.documentElement.lang = language ?? 'de';
       }
     });
+  }
+
+  protected async onDatasetSelected(event: Event): Promise<void> {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const dataset = this.availableDatasets().find((item) => item.id === select.value);
+    if (!dataset) {
+      select.value = this.selectedDatasetId();
+      return;
+    }
+
+    this.loadError.set(null);
+    this.isLoading.set(true);
+
+    try {
+      const contents = await firstValueFrom(
+        this.http.get(`data/${dataset.fileName}`, { responseType: 'text' }),
+      );
+      this.applyTrainingData(contents, dataset.fileName, dataset.id);
+    } catch (error) {
+      if (!(error instanceof HttpErrorResponse)) {
+        throw error;
+      }
+      this.loadError.set({
+        key: 'datasets.fileLoadFailed',
+        params: { name: dataset.name },
+      });
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   protected stages(): StageDefinition[] {
@@ -331,50 +377,79 @@ export class App {
         return;
       }
 
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(contents) as unknown;
-      } catch (error) {
-        if (!(error instanceof SyntaxError)) {
-          throw error;
-        }
-        this.loadError.set({ key: 'errors.invalidJson', params: { fileName: file.name } });
-        return;
-      }
-
-      let data: TrainingData;
-      try {
-        data = parseTrainingData(parsed);
-      } catch (error) {
-        if (!(error instanceof TrainingDataValidationError)) {
-          throw error;
-        }
-        this.loadError.set({
-          key: 'errors.invalidTrainingData',
-          params: { fileName: file.name },
-          detail: { key: error.translationKey, params: error.params },
-        });
-        return;
-      }
-
-      this.trainingData.set(data);
-      this.loadedFileName.set(file.name);
-      this.sourceJsonText.set(contents);
-      this.downloadError.set(null);
-      this.selectedLabelIds.set(new Set());
-      this.planError.set(null);
-      this.resetCopyStatus();
-      this.stagePlans.set(
-        [...data.catalog.stages]
-          .sort((a, b) => a.order - b.order)
-          .map((stage) => ({
-            stageId: stage.id,
-            slots: Array.from({ length: stage.defaultDrillCount }, createPlanSlot),
-          })),
-      );
+      this.applyTrainingData(contents, file.name, null);
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  private loadDatasetCatalog(): void {
+    this.http.get<unknown>('data/datasets.json').subscribe({
+      next: (catalog) => {
+        try {
+          this.availableDatasets.set(parseTrainingDatasetCatalog(catalog));
+        } catch (error) {
+          if (!(error instanceof TrainingDatasetCatalogError)) {
+            throw error;
+          }
+          this.datasetCatalogError.set({ key: 'datasets.catalogInvalid' });
+        } finally {
+          this.isDatasetCatalogLoading.set(false);
+        }
+      },
+      error: (error: unknown) => {
+        if (!(error instanceof HttpErrorResponse)) {
+          throw error;
+        }
+        this.datasetCatalogError.set({ key: 'datasets.catalogLoadFailed' });
+        this.isDatasetCatalogLoading.set(false);
+      },
+    });
+  }
+
+  private applyTrainingData(contents: string, fileName: string, datasetId: string | null): void {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(contents) as unknown;
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) {
+        throw error;
+      }
+      this.loadError.set({ key: 'errors.invalidJson', params: { fileName } });
+      return;
+    }
+
+    let data: TrainingData;
+    try {
+      data = parseTrainingData(parsed);
+    } catch (error) {
+      if (!(error instanceof TrainingDataValidationError)) {
+        throw error;
+      }
+      this.loadError.set({
+        key: 'errors.invalidTrainingData',
+        params: { fileName },
+        detail: { key: error.translationKey, params: error.params },
+      });
+      return;
+    }
+
+    this.trainingData.set(data);
+    this.loadedFileName.set(fileName);
+    this.sourceJsonText.set(contents);
+    this.selectedDatasetId.set(datasetId ?? '');
+    this.downloadError.set(null);
+    this.selectedLabelIds.set(new Set());
+    this.planError.set(null);
+    this.resetCopyStatus();
+    this.stagePlans.set(
+      [...data.catalog.stages]
+        .sort((a, b) => a.order - b.order)
+        .map((stage) => ({
+          stageId: stage.id,
+          slots: Array.from({ length: stage.defaultDrillCount }, createPlanSlot),
+        })),
+    );
   }
 
   private updatePlanSlot(

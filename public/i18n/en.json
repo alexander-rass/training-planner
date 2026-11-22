@@ -9,6 +9,14 @@
     "english": "English",
     "loadFailed": "The translation file for \"{{language}}\" could not be loaded. The current language remains active."
   },
+  "datasets": {
+    "label": "Preloaded training data",
+    "loading": "Loading training datasets ...",
+    "placeholder": "Select a training dataset ...",
+    "catalogLoadFailed": "Could not load the list of preloaded training datasets.",
+    "catalogInvalid": "The list of preloaded training datasets is invalid.",
+    "fileLoadFailed": "Could not load the training dataset \"{{name}}\"."
+  },
   "header": {
     "downloadJson": "Download JSON copy",
     "changeData": "Change data file",

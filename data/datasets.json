@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "datasets": [
+    {
+      "id": "sca-jg-2020",
+      "name": "SCA JG 2020",
+      "fileName": "sca_jg2020_data.json"
+    }
+  ]
+}

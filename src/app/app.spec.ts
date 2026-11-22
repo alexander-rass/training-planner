@@ -1,9 +1,12 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 import { App } from './app';
 import deTranslations from '../../public/i18n/de.json';
 import enTranslations from '../../public/i18n/en.json';
+import scaJg2020Data from '../../data/sca_jg2020_data.json';
 
 const trainingDataJson = JSON.stringify({
   schemaVersion: 1,
@@ -44,6 +47,21 @@ const trainingDataJson = JSON.stringify({
   ],
 });
 
+const trainingDatasetCatalog = {
+  schemaVersion: 1,
+  datasets: [{ id: 'sca-jg-2020', name: 'SCA JG 2020', fileName: 'sca_jg2020_data.json' }],
+};
+
+async function createAppFixture() {
+  const fixture = TestBed.createComponent(App);
+  TestBed.inject(HttpTestingController)
+    .expectOne('data/datasets.json')
+    .flush(trainingDatasetCatalog);
+  fixture.detectChanges();
+  await fixture.whenStable();
+  return fixture;
+}
+
 function translationKeys(value: object, prefix = ''): string[] {
   return Object.entries(value)
     .flatMap(([key, child]) => {
@@ -59,7 +77,11 @@ describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideTranslateService({ fallbackLang: 'en' })],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideTranslateService({ fallbackLang: 'en' }),
+      ],
     }).compileComponents();
 
     const translate = TestBed.inject(TranslateService);
@@ -68,8 +90,12 @@ describe('App', () => {
     await firstValueFrom(translate.use('de'));
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(App);
+  afterEach(() => {
+    TestBed.inject(HttpTestingController).verify();
+  });
+
+  it('should create the app', async () => {
+    const fixture = await createAppFixture();
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
   });
@@ -79,7 +105,7 @@ describe('App', () => {
   });
 
   it('switches between German and English at runtime', async () => {
-    const fixture = TestBed.createComponent(App);
+    const fixture = await createAppFixture();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
@@ -103,15 +129,14 @@ describe('App', () => {
   });
 
   it('should offer a JSON file picker', async () => {
-    const fixture = TestBed.createComponent(App);
+    const fixture = await createAppFixture();
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('input[type="file"]')?.getAttribute('accept')).toContain('.json');
   });
 
   it('loads stages, filters drill choices by labels, and resizes plan slots', async () => {
-    const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
+    const fixture = await createAppFixture();
     const fileInput = fixture.nativeElement.querySelector('input[type="file"]') as HTMLInputElement;
     const file = {
       name: 'pilot-data.json',
@@ -165,5 +190,22 @@ describe('App', () => {
     fixture.detectChanges();
     expect(compiled.querySelector('.slot')).toBeNull();
     expect((compiled.querySelector('.copy-button') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('loads a selected named dataset from its deployed data file', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const datasetSelect = compiled.querySelector('.dataset-picker select') as HTMLSelectElement;
+
+    datasetSelect.value = 'sca-jg-2020';
+    datasetSelect.dispatchEvent(new Event('change'));
+    TestBed.inject(HttpTestingController)
+      .expectOne('data/sca_jg2020_data.json')
+      .flush(JSON.stringify(scaJg2020Data));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(datasetSelect.value).toBe('sca-jg-2020');
+    expect(compiled.querySelector('.stage h2')?.textContent).toBe('Warm-up');
   });
 });

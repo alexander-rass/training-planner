@@ -9,6 +9,14 @@
     "english": "Englisch",
     "loadFailed": "Die Sprachdatei für „{{language}}“ konnte nicht geladen werden. Die bisherige Sprache bleibt aktiv."
   },
+  "datasets": {
+    "label": "Vordefinierte Trainingsdaten",
+    "loading": "Trainingsdatensätze werden geladen ...",
+    "placeholder": "Trainingsdatensatz auswählen ...",
+    "catalogLoadFailed": "Die Liste der vordefinierten Trainingsdatensätze konnte nicht geladen werden.",
+    "catalogInvalid": "Die Liste der vordefinierten Trainingsdatensätze ist ungültig.",
+    "fileLoadFailed": "Der Trainingsdatensatz „{{name}}“ konnte nicht geladen werden."
+  },
   "header": {
     "downloadJson": "JSON-Kopie herunterladen",
     "changeData": "Datendatei wechseln",

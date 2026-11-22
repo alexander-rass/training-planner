@@ -16,6 +16,23 @@
           <option value="en">{{ 'language.english' | translate }}</option>
         </select>
       </label>
+      <label class="select-control dataset-picker">
+        <span>{{ 'datasets.label' | translate }}</span>
+        <select
+          [value]="selectedDatasetId()"
+          [disabled]="isDatasetCatalogLoading() || isLoading()"
+          (change)="onDatasetSelected($event)"
+        >
+          <option value="">
+            {{
+              (isDatasetCatalogLoading() ? 'datasets.loading' : 'datasets.placeholder') | translate
+            }}
+          </option>
+          @for (dataset of availableDatasets(); track dataset.id) {
+            <option [value]="dataset.id">{{ dataset.name }}</option>
+          }
+        </select>
+      </label>
       @if (trainingData()) {
         <button class="download-button" type="button" (click)="downloadJsonCopy()">
           {{ 'header.downloadJson' | translate }}
@@ -34,6 +51,10 @@
       </label>
     </div>
   </header>
+
+  @if (datasetCatalogError(); as error) {
+    <p class="message error" role="alert">{{ error.key | translate: error.params }}</p>
+  }
 
   @if (isLoading()) {
     <p class="message loading" role="status">{{ 'status.readingFile' | translate }}</p>
