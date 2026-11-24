@@ -11,12 +11,7 @@ import {
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { Drill, StageDefinition, TrainingData, TrainingDataValidationError } from './training-data';
 import { TrainingDataStore } from './training-data-store';
-
-interface TranslationMessage {
-  key: string;
-  params?: Record<string, string | number>;
-  detail?: TranslationMessage;
-}
+import { TranslationMessage } from './translation-message';
 
 @Component({
   selector: 'app-training-data-editor',

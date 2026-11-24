@@ -19,26 +19,27 @@
       <label class="select-control dataset-picker">
         <span>{{ 'datasets.label' | translate }}</span>
         <select
-          [value]="selectedDatasetId()"
-          [disabled]="isDatasetCatalogLoading() || isLoading()"
-          (change)="onDatasetSelected($event)"
+          [value]="dataSource.selectedDatasetId()"
+          [disabled]="dataSource.isDatasetCatalogLoading() || dataSource.isLoading()"
+          (change)="dataSource.onDatasetSelected($event)"
         >
           <option value="">
             {{
-              (isDatasetCatalogLoading() ? 'datasets.loading' : 'datasets.placeholder') | translate
+              (dataSource.isDatasetCatalogLoading() ? 'datasets.loading' : 'datasets.placeholder')
+                | translate
             }}
           </option>
-          @for (dataset of availableDatasets(); track dataset.id) {
+          @for (dataset of dataSource.availableDatasets(); track dataset.id) {
             <option [value]="dataset.id">{{ dataset.name }}</option>
           }
         </select>
       </label>
-      @if (selectedDatasetId()) {
+      @if (dataSource.selectedDatasetId()) {
         <button
           class="download-button"
           type="button"
-          [disabled]="isLoading()"
-          (click)="reloadSelectedDataset()"
+          [disabled]="dataSource.isLoading()"
+          (click)="dataSource.reloadSelectedDataset()"
         >
           {{ 'datasets.reload' | translate }}
         </button>
@@ -47,7 +48,7 @@
         <button
           class="download-button"
           type="button"
-          [disabled]="isLoading()"
+          [disabled]="dataSource.isLoading()"
           (click)="downloadJsonCopy()"
         >
           {{ (hasUnsavedChanges() ? 'editor.exportChanges' : 'header.downloadJson') | translate }}
@@ -55,7 +56,7 @@
         <button
           class="download-button"
           type="button"
-          [disabled]="isLoading()"
+          [disabled]="dataSource.isLoading()"
           (click)="toggleDataEditor()"
         >
           {{ (isEditingData() ? 'editor.returnToPlanner' : 'editor.editData') | translate }}
@@ -63,13 +64,13 @@
       }
       <div class="file-picker">
         <span>
-          {{ (loadedFileName() ? 'header.changeData' : 'header.loadData') | translate }}
+          {{ (dataSource.loadedFileName() ? 'header.changeData' : 'header.loadData') | translate }}
         </span>
         <div class="file-picker-controls">
           <button
             class="download-button"
             type="button"
-            [disabled]="isLoading()"
+            [disabled]="dataSource.isLoading()"
             (click)="fileInput.click()"
           >
             {{ 'header.chooseFile' | translate }}
@@ -79,26 +80,26 @@
             type="file"
             accept=".json,application/json"
             hidden
-            [disabled]="isLoading()"
-            (change)="onFileSelected($event)"
+            [disabled]="dataSource.isLoading()"
+            (change)="dataSource.onFileSelected($event)"
           />
           <span class="file-name" aria-live="polite">
-            {{ selectedLocalFileName() ?? ('header.noFileSelected' | translate) }}
+            {{ dataSource.selectedLocalFileName() ?? ('header.noFileSelected' | translate) }}
           </span>
         </div>
       </div>
     </div>
   </header>
 
-  @if (datasetCatalogError(); as error) {
+  @if (dataSource.datasetCatalogError(); as error) {
     <p class="message error" role="alert">{{ error.key | translate: error.params }}</p>
   }
 
-  @if (isLoading()) {
+  @if (dataSource.isLoading()) {
     <p class="message loading" role="status">{{ 'status.readingFile' | translate }}</p>
   }
 
-  @if (loadError(); as error) {
+  @if (dataSource.loadError(); as error) {
     <div class="message error" role="alert">
       <strong>{{ 'errors.loadTitle' | translate }}</strong>
       <p>{{ error.key | translate: error.params }}</p>
@@ -106,7 +107,9 @@
         <p>{{ detail.key | translate: detail.params }}</p>
       }
       @if (trainingData(); as loadedData) {
-        <p>{{ 'errors.previousFileActive' | translate: { fileName: loadedFileName() } }}</p>
+        <p>
+          {{ 'errors.previousFileActive' | translate: { fileName: dataSource.loadedFileName() } }}
+        </p>
       }
     </div>
   }
@@ -127,16 +130,16 @@
   @if (trainingData()) {
     <app-training-data-editor
       [isEditing]="isEditingData()"
-      [isLoading]="isLoading()"
-      [resetToken]="editorResetToken()"
+      [isLoading]="dataSource.isLoading()"
+      [resetToken]="dataSource.dataRevision()"
       (dataChanged)="onTrainingDataEdited()"
     />
     <app-training-plan-view
       [isVisible]="!isEditingData()"
-      [resetToken]="planResetToken()"
+      [resetToken]="dataSource.dataRevision()"
       [dataChangeToken]="planDataChangeToken()"
     />
-  } @else if (!loadError() && !isLoading()) {
+  } @else if (!dataSource.loadError() && !dataSource.isLoading()) {
     <section class="welcome">
       <h2>{{ 'welcome.heading' | translate }}</h2>
       <p>{{ 'welcome.description' | translate }}</p>

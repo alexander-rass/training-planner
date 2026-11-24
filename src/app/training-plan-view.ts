@@ -12,11 +12,7 @@ import { MarkdownPipe } from './markdown.pipe';
 import { Drill, ModificationDefinition, StageDefinition } from './training-data';
 import { formatWhatsAppPlan, PlanSlot, StagePlan, whatsAppToMarkdown } from './training-plan';
 import { TrainingDataStore } from './training-data-store';
-
-interface TranslationMessage {
-  key: string;
-  params?: Record<string, string | number>;
-}
+import { TranslationMessage } from './translation-message';
 
 @Component({
   selector: 'app-training-plan-view',
