@@ -1,6 +1,6 @@
 # Roadmap and Copilot Handoff
 
-Last reviewed: 2026-11-24
+Last reviewed: 2026-11-25
 
 This is a suggested roadmap, not a commitment to implement every item. The app already covers the core pilot workflow. Pick one follow-up at a time and confirm the desired behavior before making larger product decisions.
 
@@ -19,6 +19,7 @@ Implemented:
 - Preview/copy the plan as WhatsApp-formatted text and export the current training data as JSON.
 - German and English interface strings. The browser's preferred language is checked on each startup; German is the fallback. The choice is not saved.
 - Build and deploy scripts include the project's MIT license and generated third-party notices.
+- Refactored the app into a small shell with separate data-source, data-editor, plan-view, and validated data-store responsibilities. Focused editor and planner tests live with their components; app-level tests cover integration flows.
 
 Important current constraints:
 
