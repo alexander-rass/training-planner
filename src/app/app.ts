@@ -3,12 +3,12 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 import { MarkdownPipe } from './markdown.pipe';
+import { TrainingDataEditor } from './training-data-editor';
 import {
   Drill,
   LabelDefinition,
   ModificationDefinition,
   StageDefinition,
-  TrainingData,
   TrainingDataValidationError,
 } from './training-data';
 import { formatWhatsAppPlan, PlanSlot, StagePlan, whatsAppToMarkdown } from './training-plan';
@@ -28,7 +28,7 @@ interface TranslationMessage {
 
 @Component({
   selector: 'app-root',
-  imports: [MarkdownPipe, TranslatePipe],
+  imports: [MarkdownPipe, TrainingDataEditor, TranslatePipe],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -45,11 +45,7 @@ export class App {
   protected readonly loadedFileName = signal<string | null>(null);
   protected readonly selectedLocalFileName = signal<string | null>(null);
   protected readonly isEditingData = signal(false);
-  protected readonly selectedEditorDrillId = signal<string | null>(null);
-  protected readonly editorSearchQuery = signal('');
-  protected readonly editorStageFilterId = signal('');
-  protected readonly editorLabelFilterId = signal('');
-  protected readonly editorError = signal<TranslationMessage | null>(null);
+  protected readonly editorResetToken = signal(0);
   protected readonly loadError = signal<TranslationMessage | null>(null);
   protected readonly datasetCatalogError = signal<TranslationMessage | null>(null);
   protected readonly availableDatasets = signal<TrainingDatasetDefinition[]>([]);
@@ -149,243 +145,14 @@ export class App {
     return data ? [...data.catalog.stages].sort((a, b) => a.order - b.order) : [];
   }
 
-  protected editorDrill(): Drill | undefined {
-    const selectedId = this.selectedEditorDrillId();
-    return this.trainingData()?.drills.find((drill) => drill.id === selectedId);
-  }
-
-  protected filteredEditorDrills(): Drill[] {
-    const data = this.trainingData();
-    if (!data) {
-      return [];
-    }
-
-    const query = this.editorSearchQuery().trim().toLowerCase();
-    const stageId = this.editorStageFilterId();
-    const labelId = this.editorLabelFilterId();
-    const labelsById = new Map(data.catalog.labels.map((label) => [label.id, label.label]));
-    return data.drills.filter(
-      (drill) =>
-        (!query ||
-          [
-            drill.title,
-            drill.descriptionMarkdown,
-            ...(drill.coachingPoints ?? []),
-            ...drill.labelIds.map((id) => labelsById.get(id) ?? ''),
-          ]
-            .join(' ')
-            .toLowerCase()
-            .includes(query)) &&
-        (!stageId || drill.availableStageIds.includes(stageId)) &&
-        (!labelId || drill.labelIds.includes(labelId)),
-    );
-  }
-
-  protected onEditorSearchChanged(event: Event): void {
-    const input = event.target;
-    if (input instanceof HTMLInputElement) {
-      this.editorSearchQuery.set(input.value);
-    }
-  }
-
-  protected onEditorStageFilterChanged(event: Event): void {
-    const select = event.target;
-    if (!(select instanceof HTMLSelectElement)) {
-      return;
-    }
-
-    const stageId = select.value;
-    if (!stageId || this.trainingData()?.catalog.stages.some((stage) => stage.id === stageId)) {
-      this.editorStageFilterId.set(stageId);
-    } else {
-      select.value = this.editorStageFilterId();
-    }
-  }
-
-  protected onEditorLabelFilterChanged(event: Event): void {
-    const select = event.target;
-    if (!(select instanceof HTMLSelectElement)) {
-      return;
-    }
-
-    const labelId = select.value;
-    if (!labelId || this.trainingData()?.catalog.labels.some((label) => label.id === labelId)) {
-      this.editorLabelFilterId.set(labelId);
-    } else {
-      select.value = this.editorLabelFilterId();
-    }
-  }
-
-  protected clearEditorFilters(): void {
-    this.editorSearchQuery.set('');
-    this.editorStageFilterId.set('');
-    this.editorLabelFilterId.set('');
-  }
-
   protected toggleDataEditor(): void {
     this.isEditingData.update((editing) => !editing);
-    this.selectedEditorDrillId.set(null);
   }
 
-  protected returnToDrillSearch(): void {
-    this.selectedEditorDrillId.set(null);
-  }
-
-  protected selectEditorDrill(drillId: string): void {
-    if (this.trainingData()?.drills.some((drill) => drill.id === drillId)) {
-      this.selectedEditorDrillId.set(drillId);
-    }
-  }
-
-  protected addDrill(): void {
-    const data = this.trainingData();
-    const firstStage = this.stages()[0];
-    if (!data || !firstStage) {
-      return;
-    }
-
-    const title = this.translate.instant('editor.newDrillTitle');
-    if (typeof title !== 'string') {
-      throw new Error('The new drill title must be a string.');
-    }
-
-    const existingIds = new Set(data.drills.map((drill) => drill.id));
-    let id = 'new-drill';
-    let suffix = 2;
-    while (existingIds.has(id)) {
-      id = `new-drill-${suffix}`;
-      suffix += 1;
-    }
-
-    const drill: Drill = {
-      id,
-      title,
-      availableStageIds: [firstStage.id],
-      labelIds: [],
-      descriptionMarkdown: '',
-      modificationIds: [],
-    };
-    if (
-      !this.applyTrainingDataChange((current) => ({
-        ...current,
-        drills: [...current.drills, drill],
-      }))
-    ) {
-      return;
-    }
-    this.selectedEditorDrillId.set(drill.id);
-    this.clearEditorFilters();
-  }
-
-  protected confirmDeleteDrill(drill: Drill): void {
-    const message = this.translate.instant('editor.deleteDrillConfirmation', {
-      title: drill.title,
-    });
-    if (typeof message !== 'string') {
-      throw new Error('The drill deletion confirmation must be a string.');
-    }
-    if (typeof window !== 'undefined' && !window.confirm(message)) {
-      return;
-    }
-
-    if (
-      !this.applyTrainingDataChange((data) => ({
-        ...data,
-        drills: data.drills.filter((candidate) => candidate.id !== drill.id),
-      }))
-    ) {
-      return;
-    }
-
-    this.stagePlans.update((plans) =>
-      plans.map((plan) => ({
-        ...plan,
-        slots: plan.slots.map((slot) =>
-          slot.drillId === drill.id ? { drillId: null, modificationSelections: {} } : slot,
-        ),
-      })),
-    );
-    this.selectedEditorDrillId.set(null);
-  }
-
-  protected onDrillTitleChanged(drillId: string, event: Event): void {
-    const input = event.target;
-    if (!(input instanceof HTMLInputElement)) {
-      return;
-    }
-    if (input.value.trim().length === 0) {
-      input.value = this.trainingData()?.drills.find((drill) => drill.id === drillId)?.title ?? '';
-      this.editorError.set({ key: 'editor.titleRequired' });
-      return;
-    }
-    if (!this.updateDrill(drillId, (drill) => ({ ...drill, title: input.value }))) {
-      input.value = this.trainingData()?.drills.find((drill) => drill.id === drillId)?.title ?? '';
-    }
-  }
-
-  protected onDrillStageToggled(drill: Drill, stageId: string, event: Event): void {
-    const input = event.target;
-    if (!(input instanceof HTMLInputElement)) {
-      return;
-    }
-
-    const availableStageIds = input.checked
-      ? [...drill.availableStageIds, stageId]
-      : drill.availableStageIds.filter((id) => id !== stageId);
-    if (!this.updateDrill(drill.id, (current) => ({ ...current, availableStageIds }))) {
-      input.checked = drill.availableStageIds.includes(stageId);
-      return;
-    }
-    this.stagePlans.update((plans) =>
-      plans.map((plan) => ({
-        ...plan,
-        slots: plan.slots.map((slot) =>
-          slot.drillId === drill.id && !availableStageIds.includes(plan.stageId)
-            ? { drillId: null, modificationSelections: {} }
-            : slot,
-        ),
-      })),
-    );
-  }
-
-  protected onDrillLabelToggled(drill: Drill, labelId: string, event: Event): void {
-    const input = event.target;
-    if (!(input instanceof HTMLInputElement)) {
-      return;
-    }
-
-    const labelIds = input.checked
-      ? [...drill.labelIds, labelId]
-      : drill.labelIds.filter((id) => id !== labelId);
-    if (!this.updateDrill(drill.id, (current) => ({ ...current, labelIds }))) {
-      input.checked = drill.labelIds.includes(labelId);
-    }
-  }
-
-  private updateDrill(drillId: string, update: (drill: Drill) => Drill): boolean {
-    return this.applyTrainingDataChange((data) => ({
-      ...data,
-      drills: data.drills.map((drill) => (drill.id === drillId ? update(drill) : drill)),
-    }));
-  }
-
-  private applyTrainingDataChange(update: (data: TrainingData) => TrainingData): boolean {
-    const validationError = this.trainingDataStore.applyChange(update);
-    if (validationError) {
-      this.editorError.set({
-        key: 'editor.changeRejected',
-        detail: {
-          key: validationError.translationKey,
-          params: validationError.params,
-        },
-      });
-      return false;
-    }
-
-    this.editorError.set(null);
+  protected onTrainingDataEdited(): void {
+    this.reconcileStagePlans();
     this.downloadError.set(null);
     this.resetCopyStatus();
-    return true;
   }
 
   protected mainFilterLabels(): LabelDefinition[] {
@@ -743,12 +510,8 @@ export class App {
     this.loadedFileName.set(fileName);
     this.selectedLocalFileName.set(datasetId === null ? fileName : null);
     this.selectedDatasetId.set(datasetId ?? '');
-    this.selectedEditorDrillId.set(null);
     this.isEditingData.set(false);
-    this.editorError.set(null);
-    this.editorSearchQuery.set('');
-    this.editorStageFilterId.set('');
-    this.editorLabelFilterId.set('');
+    this.editorResetToken.update((token) => token + 1);
     this.downloadError.set(null);
     this.selectedLabelIds.set(new Set());
     this.planError.set(null);
@@ -779,6 +542,58 @@ export class App {
       ),
     );
     this.resetCopyStatus();
+  }
+
+  private reconcileStagePlans(): void {
+    const data = this.trainingData();
+    if (!data) {
+      return;
+    }
+
+    const previousPlans = new Map(this.stagePlans().map((plan) => [plan.stageId, plan]));
+    const drillsById = new Map(data.drills.map((drill) => [drill.id, drill]));
+    const modificationsById = new Map(
+      data.catalog.modifications.map((modification) => [modification.id, modification]),
+    );
+    const labelsById = new Set(data.catalog.labels.map((label) => label.id));
+
+    this.selectedLabelIds.update(
+      (selected) => new Set([...selected].filter((labelId) => labelsById.has(labelId))),
+    );
+    this.stagePlans.set(
+      [...data.catalog.stages]
+        .sort((a, b) => a.order - b.order)
+        .map((stage) => {
+          const previousPlan = previousPlans.get(stage.id);
+          const slots =
+            previousPlan?.slots ?? Array.from({ length: stage.defaultDrillCount }, createPlanSlot);
+
+          return {
+            stageId: stage.id,
+            slots: slots.map((slot) => {
+              if (!slot.drillId) {
+                return { drillId: null, modificationSelections: {} };
+              }
+
+              const drill = drillsById.get(slot.drillId);
+              if (!drill || !drill.availableStageIds.includes(stage.id)) {
+                return { drillId: null, modificationSelections: {} };
+              }
+
+              const modificationSelections = Object.fromEntries(
+                Object.entries(slot.modificationSelections).filter(
+                  ([modificationId, optionId]) =>
+                    drill.modificationIds.includes(modificationId) &&
+                    modificationsById
+                      .get(modificationId)
+                      ?.options.some((option) => option.id === optionId),
+                ),
+              );
+              return { ...slot, modificationSelections };
+            }),
+          };
+        }),
+    );
   }
 
   private resetCopyStatus(): void {
