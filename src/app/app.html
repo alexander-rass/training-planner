@@ -33,9 +33,32 @@
           }
         </select>
       </label>
+      @if (selectedDatasetId()) {
+        <button
+          class="download-button"
+          type="button"
+          [disabled]="isLoading()"
+          (click)="reloadSelectedDataset()"
+        >
+          {{ 'datasets.reload' | translate }}
+        </button>
+      }
       @if (trainingData()) {
-        <button class="download-button" type="button" (click)="downloadJsonCopy()">
-          {{ 'header.downloadJson' | translate }}
+        <button
+          class="download-button"
+          type="button"
+          [disabled]="isLoading()"
+          (click)="downloadJsonCopy()"
+        >
+          {{ (hasUnsavedChanges() ? 'editor.exportChanges' : 'header.downloadJson') | translate }}
+        </button>
+        <button
+          class="download-button"
+          type="button"
+          [disabled]="isLoading()"
+          (click)="toggleDataEditor()"
+        >
+          {{ (isEditingData() ? 'editor.returnToPlanner' : 'editor.editData') | translate }}
         </button>
       }
       <div class="file-picker">
@@ -89,7 +112,12 @@
   }
 
   @if (downloadError(); as error) {
-    <p class="message error" role="alert">{{ error.key | translate: error.params }}</p>
+    <div class="message error" role="alert">
+      <p>{{ error.key | translate: error.params }}</p>
+      @if (error.detail; as detail) {
+        <p>{{ detail.key | translate: detail.params }}</p>
+      }
+    </div>
   }
 
   @if (languageError(); as error) {
@@ -97,189 +125,377 @@
   }
 
   @if (trainingData(); as data) {
-    <section class="filters" aria-labelledby="filters-heading">
+    <section class="data-editor" aria-labelledby="editor-heading" [hidden]="!isEditingData()">
       <div class="section-heading">
         <div>
-          <h2 id="filters-heading">{{ 'filters.heading' | translate }}</h2>
-          <p>{{ 'filters.multipleLabels' | translate }}</p>
+          <h2 id="editor-heading">{{ 'editor.heading' | translate }}</h2>
+          <p>{{ 'editor.description' | translate }}</p>
         </div>
-        @if (selectedLabelIds().size > 0) {
-          <button class="text-button" type="button" (click)="clearLabelFilters()">
-            {{ 'filters.clear' | translate }}
-          </button>
+        @if (hasUnsavedChanges()) {
+          <p class="unsaved-status" role="status">{{ 'editor.unsavedChanges' | translate }}</p>
         }
       </div>
-
-      <div class="filter-list" [attr.aria-label]="'filters.mainAria' | translate">
-        @for (label of mainFilterLabels(); track label.id) {
-          <button
-            class="filter-chip"
-            [class.selected]="isLabelSelected(label.id)"
-            [attr.aria-pressed]="isLabelSelected(label.id)"
-            type="button"
-            (click)="toggleLabel(label.id)"
-          >
-            {{ label.label }}
-          </button>
-        }
-      </div>
-
-      @if (additionalFilterLabels().length > 0) {
-        <details class="additional-filters">
-          <summary>
-            {{ 'filters.additional' | translate: { count: additionalFilterLabels().length } }}
-          </summary>
-          <div class="filter-list">
-            @for (label of additionalFilterLabels(); track label.id) {
-              <button
-                class="filter-chip"
-                [class.selected]="isLabelSelected(label.id)"
-                [attr.aria-pressed]="isLabelSelected(label.id)"
-                type="button"
-                (click)="toggleLabel(label.id)"
-              >
-                {{ label.label }}
-              </button>
-            }
-          </div>
-        </details>
+      @if (editorError(); as error) {
+        <div class="message error" role="alert">
+          <p>{{ error.key | translate: error.params }}</p>
+          @if (error.detail; as detail) {
+            <p>{{ detail.key | translate: detail.params }}</p>
+          }
+        </div>
       }
-    </section>
 
-    @if (planError(); as error) {
-      <p class="message error" role="alert">{{ error.key | translate: error.params }}</p>
-    }
-
-    <section class="stages" [attr.aria-label]="'stages.aria' | translate">
-      @for (stage of stages(); track stage.id) {
-        <article class="stage">
-          <header class="stage-header">
-            <div>
-              <p class="stage-number">{{ 'stages.number' | translate: { order: stage.order } }}</p>
-              <h2>{{ stage.label }}</h2>
+      @if (editorDrill(); as drill) {
+        <section class="editor-detail-page" aria-labelledby="drill-editor-title">
+          <button
+            class="text-button editor-back-button"
+            type="button"
+            (click)="returnToDrillSearch()"
+          >
+            {{ 'editor.backToSearch' | translate }}
+          </button>
+          <div class="editor-form">
+            <div class="editor-form-heading">
+              <h3 id="drill-editor-title">{{ drill.title }}</h3>
+              <button
+                class="text-button delete-button"
+                type="button"
+                [disabled]="isLoading()"
+                (click)="confirmDeleteDrill(drill)"
+              >
+                {{ 'editor.deleteDrill' | translate }}
+              </button>
             </div>
-            <label class="count-control">
-              <span>{{ 'stages.drillCount' | translate }}</span>
+
+            <label class="editor-field">
+              <span>{{ 'editor.title' | translate }}</span>
               <input
-                type="number"
-                min="0"
-                step="1"
-                [value]="slotsForStage(stage.id).length"
-                (change)="onDrillCountChanged(stage.id, $event)"
+                type="text"
+                required
+                [disabled]="isLoading()"
+                [value]="drill.title"
+                [attr.aria-invalid]="drill.title.trim().length === 0"
+                (change)="onDrillTitleChanged(drill.id, $event)"
               />
             </label>
-          </header>
 
-          @if (slotsForStage(stage.id).length === 0) {
-            <p class="empty-stage">{{ 'stages.empty' | translate }}</p>
-          } @else {
-            <div class="slots">
-              @for (slot of slotsForStage(stage.id); track $index; let index = $index) {
-                <section class="slot">
-                  <h3>{{ 'drills.slotNumber' | translate: { index: index + 1 } }}</h3>
-                  <label class="select-control">
-                    <span>{{ 'drills.choose' | translate }}</span>
-                    <select
-                      [value]="slot.drillId ?? ''"
-                      (change)="onDrillSelected(stage.id, index, $event)"
-                    >
-                      <option value="">{{ 'drills.selectPlaceholder' | translate }}</option>
-                      @for (drill of selectableDrills(stage.id, slot.drillId); track drill.id) {
-                        <option [value]="drill.id">{{ drill.title }}</option>
-                      }
-                    </select>
-                  </label>
+            <fieldset class="editor-choice-group">
+              <legend>{{ 'editor.availableStages' | translate }}</legend>
+              @for (stage of stages(); track stage.id) {
+                <label class="editor-checkbox">
+                  <input
+                    type="checkbox"
+                    [disabled]="isLoading()"
+                    [checked]="drill.availableStageIds.includes(stage.id)"
+                    (change)="onDrillStageToggled(drill, stage.id, $event)"
+                  />
+                  <span>{{ stage.label }}</span>
+                </label>
+              }
+            </fieldset>
 
-                  @if (drillForSlot(slot); as drill) {
-                    <div class="drill-details">
-                      <div
-                        class="description markdown-content"
-                        [innerHTML]="drill.descriptionMarkdown | markdown"
-                      ></div>
-                      @if (drill.coachingPoints?.length) {
-                        <section class="coaching-points">
-                          <h4>{{ 'drills.coachingPoints' | translate }}</h4>
-                          <ul>
-                            @for (point of drill.coachingPoints; track $index) {
-                              <li>
-                                <div class="markdown-content" [innerHTML]="point | markdown"></div>
-                              </li>
-                            }
-                          </ul>
-                        </section>
-                      }
+            <fieldset class="editor-choice-group">
+              <legend>{{ 'editor.labels' | translate }}</legend>
+              @for (label of data.catalog.labels; track label.id) {
+                <label class="editor-checkbox">
+                  <input
+                    type="checkbox"
+                    [disabled]="isLoading()"
+                    [checked]="drill.labelIds.includes(label.id)"
+                    (change)="onDrillLabelToggled(drill, label.id, $event)"
+                  />
+                  <span>{{ label.label }}</span>
+                </label>
+              } @empty {
+                <p class="editor-hint">{{ 'editor.noLabels' | translate }}</p>
+              }
+            </fieldset>
+          </div>
+        </section>
+      } @else {
+        <section
+          class="editor-browser-page"
+          [attr.aria-label]="'editor.searchPageAria' | translate"
+        >
+          <div class="editor-actions">
+            <button
+              class="copy-button"
+              type="button"
+              [disabled]="stages().length === 0 || isLoading()"
+              (click)="addDrill()"
+            >
+              {{ 'editor.addDrill' | translate }}
+            </button>
+            @if (stages().length === 0) {
+              <p class="editor-hint">{{ 'editor.noStageToCreate' | translate }}</p>
+            }
+          </div>
 
-                      @if (modificationsForDrill(drill).length > 0) {
-                        <div class="modifications">
-                          @for (
-                            modification of modificationsForDrill(drill);
-                            track modification.id
-                          ) {
-                            <label class="select-control">
-                              <span>{{ modification.label }}</span>
-                              <select
-                                [value]="slot.modificationSelections[modification.id] ?? ''"
-                                (change)="
-                                  onModificationSelected(stage.id, index, modification, $event)
-                                "
-                              >
-                                <option value="">
-                                  {{ 'modifications.chooseOption' | translate }}
-                                </option>
-                                @for (option of modification.options; track option.id) {
-                                  <option [value]="option.id">{{ option.label }}</option>
-                                }
-                              </select>
-                            </label>
-                          }
-                        </div>
-                      }
-                    </div>
-                  } @else if (selectableDrills(stage.id, slot.drillId).length === 0) {
-                    <p class="empty-slot">{{ 'drills.noLabelMatches' | translate }}</p>
+          <div class="editor-browser">
+            <label class="editor-field">
+              <span>{{ 'editor.search' | translate }}</span>
+              <input
+                type="search"
+                [value]="editorSearchQuery()"
+                (input)="onEditorSearchChanged($event)"
+              />
+            </label>
+
+            <div class="editor-browser-filters">
+              <label class="select-control">
+                <span>{{ 'editor.filterByStage' | translate }}</span>
+                <select (change)="onEditorStageFilterChanged($event)">
+                  <option value="" [selected]="!editorStageFilterId()">
+                    {{ 'editor.allStages' | translate }}
+                  </option>
+                  @for (stage of stages(); track stage.id) {
+                    <option [value]="stage.id" [selected]="stage.id === editorStageFilterId()">
+                      {{ stage.label }}
+                    </option>
                   }
-                </section>
+                </select>
+              </label>
+              <label class="select-control">
+                <span>{{ 'editor.filterByLabel' | translate }}</span>
+                <select (change)="onEditorLabelFilterChanged($event)">
+                  <option value="" [selected]="!editorLabelFilterId()">
+                    {{ 'editor.allLabels' | translate }}
+                  </option>
+                  @for (label of data.catalog.labels; track label.id) {
+                    <option [value]="label.id" [selected]="label.id === editorLabelFilterId()">
+                      {{ label.label }}
+                    </option>
+                  }
+                </select>
+              </label>
+            </div>
+
+            <div class="editor-results-heading">
+              <p>
+                {{
+                  'editor.matchCount'
+                    | translate: { count: filteredEditorDrills().length, total: data.drills.length }
+                }}
+              </p>
+              @if (editorSearchQuery() || editorStageFilterId() || editorLabelFilterId()) {
+                <button class="text-button" type="button" (click)="clearEditorFilters()">
+                  {{ 'editor.clearFilters' | translate }}
+                </button>
               }
             </div>
-          }
-        </article>
+
+            <nav class="editor-drill-list" [attr.aria-label]="'editor.drillList' | translate">
+              @for (drill of filteredEditorDrills(); track drill.id) {
+                <button
+                  type="button"
+                  class="editor-drill-choice"
+                  [disabled]="isLoading()"
+                  (click)="selectEditorDrill(drill.id)"
+                >
+                  {{ drill.title }}
+                </button>
+              } @empty {
+                <p class="editor-hint">
+                  {{
+                    (data.drills.length === 0 ? 'editor.noDrills' : 'editor.noDrillMatches')
+                      | translate
+                  }}
+                </p>
+              }
+            </nav>
+          </div>
+        </section>
       }
     </section>
-
-    <section class="share" aria-labelledby="share-heading">
-      <div class="section-heading">
-        <div>
-          <h2 id="share-heading">{{ 'share.heading' | translate }}</h2>
-          <p>{{ 'share.description' | translate }}</p>
+    <div [hidden]="isEditingData()">
+      <section class="filters" aria-labelledby="filters-heading">
+        <div class="section-heading">
+          <div>
+            <h2 id="filters-heading">{{ 'filters.heading' | translate }}</h2>
+            <p>{{ 'filters.multipleLabels' | translate }}</p>
+          </div>
+          @if (selectedLabelIds().size > 0) {
+            <button class="text-button" type="button" (click)="clearLabelFilters()">
+              {{ 'filters.clear' | translate }}
+            </button>
+          }
         </div>
-        <button
-          class="copy-button"
-          type="button"
-          [disabled]="!whatsappMessage()"
-          (click)="copyWhatsAppMessage()"
-        >
-          {{ (copied() ? 'share.copiedButton' : 'share.copyButton') | translate }}
-        </button>
-      </div>
 
-      @if (whatsappMessage()) {
-        <div
-          class="message-preview markdown-content"
-          role="region"
-          [attr.aria-label]="'share.previewAria' | translate"
-          [innerHTML]="whatsappPreview() | markdown"
-        ></div>
-      } @else {
-        <p class="empty-share">{{ 'share.empty' | translate }}</p>
-      }
+        <div class="filter-list" [attr.aria-label]="'filters.mainAria' | translate">
+          @for (label of mainFilterLabels(); track label.id) {
+            <button
+              class="filter-chip"
+              [class.selected]="isLabelSelected(label.id)"
+              [attr.aria-pressed]="isLabelSelected(label.id)"
+              type="button"
+              (click)="toggleLabel(label.id)"
+            >
+              {{ label.label }}
+            </button>
+          }
+        </div>
 
-      @if (copied()) {
-        <p class="copy-success" role="status">{{ 'share.copied' | translate }}</p>
-      }
-      @if (copyError(); as error) {
+        @if (additionalFilterLabels().length > 0) {
+          <details class="additional-filters">
+            <summary>
+              {{ 'filters.additional' | translate: { count: additionalFilterLabels().length } }}
+            </summary>
+            <div class="filter-list">
+              @for (label of additionalFilterLabels(); track label.id) {
+                <button
+                  class="filter-chip"
+                  [class.selected]="isLabelSelected(label.id)"
+                  [attr.aria-pressed]="isLabelSelected(label.id)"
+                  type="button"
+                  (click)="toggleLabel(label.id)"
+                >
+                  {{ label.label }}
+                </button>
+              }
+            </div>
+          </details>
+        }
+      </section>
+
+      @if (planError(); as error) {
         <p class="message error" role="alert">{{ error.key | translate: error.params }}</p>
       }
-    </section>
+
+      <section class="stages" [attr.aria-label]="'stages.aria' | translate">
+        @for (stage of stages(); track stage.id) {
+          <article class="stage">
+            <header class="stage-header">
+              <div>
+                <p class="stage-number">
+                  {{ 'stages.number' | translate: { order: stage.order } }}
+                </p>
+                <h2>{{ stage.label }}</h2>
+              </div>
+              <label class="count-control">
+                <span>{{ 'stages.drillCount' | translate }}</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  [value]="slotsForStage(stage.id).length"
+                  (change)="onDrillCountChanged(stage.id, $event)"
+                />
+              </label>
+            </header>
+
+            @if (slotsForStage(stage.id).length === 0) {
+              <p class="empty-stage">{{ 'stages.empty' | translate }}</p>
+            } @else {
+              <div class="slots">
+                @for (slot of slotsForStage(stage.id); track $index; let index = $index) {
+                  <section class="slot">
+                    <h3>{{ 'drills.slotNumber' | translate: { index: index + 1 } }}</h3>
+                    <label class="select-control">
+                      <span>{{ 'drills.choose' | translate }}</span>
+                      <select
+                        [value]="slot.drillId ?? ''"
+                        (change)="onDrillSelected(stage.id, index, $event)"
+                      >
+                        <option value="">{{ 'drills.selectPlaceholder' | translate }}</option>
+                        @for (drill of selectableDrills(stage.id, slot.drillId); track drill.id) {
+                          <option [value]="drill.id">{{ drill.title }}</option>
+                        }
+                      </select>
+                    </label>
+
+                    @if (drillForSlot(slot); as drill) {
+                      <div class="drill-details">
+                        <div
+                          class="description markdown-content"
+                          [innerHTML]="drill.descriptionMarkdown | markdown"
+                        ></div>
+                        @if (drill.coachingPoints?.length) {
+                          <section class="coaching-points">
+                            <h4>{{ 'drills.coachingPoints' | translate }}</h4>
+                            <ul>
+                              @for (point of drill.coachingPoints; track $index) {
+                                <li>
+                                  <div
+                                    class="markdown-content"
+                                    [innerHTML]="point | markdown"
+                                  ></div>
+                                </li>
+                              }
+                            </ul>
+                          </section>
+                        }
+
+                        @if (modificationsForDrill(drill).length > 0) {
+                          <div class="modifications">
+                            @for (
+                              modification of modificationsForDrill(drill);
+                              track modification.id
+                            ) {
+                              <label class="select-control">
+                                <span>{{ modification.label }}</span>
+                                <select
+                                  [value]="slot.modificationSelections[modification.id] ?? ''"
+                                  (change)="
+                                    onModificationSelected(stage.id, index, modification, $event)
+                                  "
+                                >
+                                  <option value="">
+                                    {{ 'modifications.chooseOption' | translate }}
+                                  </option>
+                                  @for (option of modification.options; track option.id) {
+                                    <option [value]="option.id">{{ option.label }}</option>
+                                  }
+                                </select>
+                              </label>
+                            }
+                          </div>
+                        }
+                      </div>
+                    } @else if (selectableDrills(stage.id, slot.drillId).length === 0) {
+                      <p class="empty-slot">{{ 'drills.noLabelMatches' | translate }}</p>
+                    }
+                  </section>
+                }
+              </div>
+            }
+          </article>
+        }
+      </section>
+
+      <section class="share" aria-labelledby="share-heading">
+        <div class="section-heading">
+          <div>
+            <h2 id="share-heading">{{ 'share.heading' | translate }}</h2>
+            <p>{{ 'share.description' | translate }}</p>
+          </div>
+          <button
+            class="copy-button"
+            type="button"
+            [disabled]="!whatsappMessage()"
+            (click)="copyWhatsAppMessage()"
+          >
+            {{ (copied() ? 'share.copiedButton' : 'share.copyButton') | translate }}
+          </button>
+        </div>
+
+        @if (whatsappMessage()) {
+          <div
+            class="message-preview markdown-content"
+            role="region"
+            [attr.aria-label]="'share.previewAria' | translate"
+            [innerHTML]="whatsappPreview() | markdown"
+          ></div>
+        } @else {
+          <p class="empty-share">{{ 'share.empty' | translate }}</p>
+        }
+
+        @if (copied()) {
+          <p class="copy-success" role="status">{{ 'share.copied' | translate }}</p>
+        }
+        @if (copyError(); as error) {
+          <p class="message error" role="alert">{{ error.key | translate: error.params }}</p>
+        }
+      </section>
+    </div>
   } @else if (!loadError() && !isLoading()) {
     <section class="welcome">
       <h2>{{ 'welcome.heading' | translate }}</h2>

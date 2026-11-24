@@ -8,6 +8,7 @@ import { App } from './app';
 import deTranslations from '../../public/i18n/de.json';
 import enTranslations from '../../public/i18n/en.json';
 import scaJg2020Data from '../../data/sca_jg2020_data.json';
+import { parseTrainingData } from './training-data';
 
 const trainingDataJson = JSON.stringify({
   schemaVersion: 1,
@@ -36,6 +37,7 @@ const trainingDataJson = JSON.stringify({
       descriptionMarkdown: 'Pass and **follow your pass**.',
       coachingPoints: ['Keep **moving**.'],
       modificationIds: ['player-selection'],
+      diagram: { kind: 'future-diagram' },
     },
     {
       id: 'drill-002',
@@ -94,6 +96,8 @@ describe('App', () => {
   afterEach(() => {
     TestBed.inject(HttpTestingController).verify();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it('should create the app', async () => {
@@ -169,6 +173,7 @@ describe('App', () => {
     drillSelect.value = 'drill-001';
     drillSelect.dispatchEvent(new Event('change'));
     fixture.detectChanges();
+    expect(drillSelect.value).toBe('drill-001');
     expect(compiled.querySelector('.description')?.textContent).toContain(
       'Pass and follow your pass.',
     );
@@ -196,7 +201,474 @@ describe('App', () => {
     countInput.dispatchEvent(new Event('change'));
     fixture.detectChanges();
     expect(compiled.querySelector('.slot')).toBeNull();
-    expect((compiled.querySelector('.copy-button') as HTMLButtonElement).disabled).toBe(true);
+    expect((compiled.querySelector('.share .copy-button') as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it('edits a drill title in the working copy and keeps the selected plan drill', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = { name: 'pilot-data.json', text: async () => trainingDataJson };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [file] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const drillSelect = compiled.querySelector('.slot .select-control select') as HTMLSelectElement;
+    drillSelect.value = 'drill-001';
+    drillSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(drillSelect.value).toBe('drill-001');
+
+    const editButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    editButton.click();
+    fixture.detectChanges();
+
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const titleInput = compiled.querySelector(
+      '.editor-form .editor-field input',
+    ) as HTMLInputElement;
+    titleInput.value = 'Updated passing drill';
+    titleInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance['stagePlans']()[0]?.slots[0]?.drillId).toBe('drill-001');
+    expect(compiled.querySelector('.unsaved-status')?.textContent).toContain(
+      'Bearbeitete Daten wurden noch nicht exportiert.',
+    );
+
+    const returnButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Zurück zum Planer'),
+    ) as HTMLButtonElement;
+    returnButton.click();
+    fixture.detectChanges();
+
+    const restoredDrillSelect = compiled.querySelector(
+      '.slot .select-control select',
+    ) as HTMLSelectElement;
+    expect([...restoredDrillSelect.options].map((option) => option.value)).toContain('drill-001');
+    expect(restoredDrillSelect.value).toBe('drill-001');
+    expect(compiled.querySelector('.message-preview')?.textContent).toContain(
+      'Updated passing drill',
+    );
+  });
+
+  it('adds and deletes drills, clearing plan selections for a deleted drill', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = { name: 'pilot-data.json', text: async () => trainingDataJson };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [file] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const drillSelect = compiled.querySelector('.slot .select-control select') as HTMLSelectElement;
+    drillSelect.value = 'drill-001';
+    drillSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const editButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    editButton.click();
+    fixture.detectChanges();
+
+    (compiled.querySelector('.editor-actions button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(
+      (compiled.querySelector('.editor-form .editor-field input') as HTMLInputElement).value,
+    ).toBe('Neue Übung');
+    (compiled.querySelector('.delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(compiled.querySelectorAll('.editor-drill-choice')).toHaveLength(2);
+    expect(compiled.querySelector('.unsaved-status')).toBeNull();
+
+    const selectedOriginalDrill = compiled.querySelector(
+      '.editor-drill-choice',
+    ) as HTMLButtonElement;
+    expect(selectedOriginalDrill.textContent).toContain('Passing for U11');
+    selectedOriginalDrill.click();
+    fixture.detectChanges();
+    (compiled.querySelector('.delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const returnButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Zurück zum Planer'),
+    ) as HTMLButtonElement;
+    returnButton.click();
+    fixture.detectChanges();
+
+    expect(
+      (compiled.querySelector('.slot .select-control select') as HTMLSelectElement).value,
+    ).toBe('');
+  });
+
+  it('searches and filters the drill list by title, stage, and label', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = { name: 'pilot-data.json', text: async () => trainingDataJson };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [file] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const editButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    editButton.click();
+    fixture.detectChanges();
+
+    const searchInput = compiled.querySelector('input[type="search"]') as HTMLInputElement;
+    searchInput.value = 'u11';
+    searchInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.editor-drill-choice')).toHaveLength(1);
+    expect(compiled.querySelector('.editor-drill-choice')?.textContent).toContain(
+      'Passing for U11',
+    );
+
+    searchInput.value = '';
+    searchInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    searchInput.value = 'moving';
+    searchInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.editor-drill-choice')).toHaveLength(1);
+    expect(compiled.querySelector('.editor-drill-choice')?.textContent).toContain(
+      'Passing for U11',
+    );
+
+    searchInput.value = '';
+    searchInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    const filters = compiled.querySelectorAll('.editor-browser-filters select');
+    (filters[0] as HTMLSelectElement).value = 'warmup';
+    (filters[0] as HTMLSelectElement).dispatchEvent(new Event('change'));
+    (filters[1] as HTMLSelectElement).value = 'u11';
+    (filters[1] as HTMLSelectElement).dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(compiled.querySelectorAll('.editor-drill-choice')).toHaveLength(1);
+    expect(compiled.querySelector('.editor-results-heading')?.textContent).toContain('1 von 2');
+
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('.editor-form')).not.toBeNull();
+    (compiled.querySelector('.editor-back-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('.editor-form')).toBeNull();
+    expect(compiled.querySelectorAll('.editor-drill-choice')).toHaveLength(1);
+    const filtersAfterBack = compiled.querySelectorAll('.editor-browser-filters select');
+    expect((filtersAfterBack[0] as HTMLSelectElement).value).toBe('warmup');
+    expect((filtersAfterBack[1] as HTMLSelectElement).value).toBe('u11');
+
+    (filtersAfterBack[0] as HTMLSelectElement).value = '';
+    (filtersAfterBack[0] as HTMLSelectElement).dispatchEvent(new Event('change'));
+    (filtersAfterBack[1] as HTMLSelectElement).value = '';
+    (filtersAfterBack[1] as HTMLSelectElement).dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.editor-drill-choice')).toHaveLength(2);
+  });
+
+  it('rejects invalid title edits with actionable feedback and keeps valid data', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = { name: 'pilot-data.json', text: async () => trainingDataJson };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [file] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const editButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    editButton.click();
+    fixture.detectChanges();
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const titleInput = compiled.querySelector(
+      '.editor-form .editor-field input',
+    ) as HTMLInputElement;
+    titleInput.value = '   ';
+    titleInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(titleInput.value).toBe('Passing for U11');
+    expect(compiled.querySelector('.data-editor .message.error')?.textContent).toContain(
+      'Der Übungstitel darf nicht leer sein',
+    );
+    expect(compiled.querySelector('.unsaved-status')).toBeNull();
+    expect((compiled.querySelector('.header-actions button') as HTMLButtonElement).disabled).toBe(
+      false,
+    );
+  });
+
+  it('exports edited data as JSON and clears the unsaved indicator after export', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = { name: 'pilot-data.json', text: async () => trainingDataJson };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [file] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const editButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    editButton.click();
+    fixture.detectChanges();
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const titleInput = compiled.querySelector(
+      '.editor-form .editor-field input',
+    ) as HTMLInputElement;
+    titleInput.value = 'Exported drill title';
+    titleInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const labelOptions = compiled
+      .querySelectorAll('.editor-choice-group')[1]
+      ?.querySelectorAll('input[type="checkbox"]');
+    (labelOptions?.[1] as HTMLInputElement).click();
+    fixture.detectChanges();
+
+    const createObjectUrl = vi.fn((_blob: Blob) => 'blob:training-data');
+    const revokeObjectUrl = vi.fn();
+    vi.stubGlobal('URL', {
+      createObjectURL: createObjectUrl,
+      revokeObjectURL: revokeObjectUrl,
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.useFakeTimers();
+
+    const exportButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Bearbeitete JSON exportieren'),
+    ) as HTMLButtonElement;
+    exportButton.click();
+    fixture.detectChanges();
+    vi.runOnlyPendingTimers();
+
+    const exportedBlob = createObjectUrl.mock.calls[0]?.[0];
+    expect(exportedBlob).toBeInstanceOf(Blob);
+    const exportedData = JSON.parse(await exportedBlob!.text()) as {
+      drills: { title: string; labelIds: string[]; diagram?: unknown }[];
+    };
+    expect(exportedData.drills[0]?.title).toBe('Exported drill title');
+    expect(exportedData.drills[0]?.labelIds).toEqual(['passing']);
+    expect(exportedData.drills[0]?.diagram).toEqual({ kind: 'future-diagram' });
+    expect(compiled.querySelector('.unsaved-status')).toBeNull();
+    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:training-data');
+  });
+
+  it('warns before replacing edited training data', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = { name: 'pilot-data.json', text: async () => trainingDataJson };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [file] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const editButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    editButton.click();
+    fixture.detectChanges();
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const titleInput = compiled.querySelector(
+      '.editor-form .editor-field input',
+    ) as HTMLInputElement;
+    titleInput.value = 'Unsaved title';
+    titleInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const datasetSelect = compiled.querySelector('.dataset-picker select') as HTMLSelectElement;
+    datasetSelect.value = 'sca-jg-2020';
+    datasetSelect.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.stringContaining('verwirft deine aktuellen Änderungen'),
+    );
+    TestBed.inject(HttpTestingController).expectNone('data/sca_jg2020_data.json');
+  });
+
+  it('reloads the same JSON file after confirming replacement of edited data', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const initialFile = { name: 'pilot-data.json', text: async () => trainingDataJson };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [initialFile] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const editButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    editButton.click();
+    fixture.detectChanges();
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const titleInput = compiled.querySelector(
+      '.editor-form .editor-field input',
+    ) as HTMLInputElement;
+    titleInput.value = 'Edited before reload';
+    titleInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const reloadedFile = {
+      name: 'pilot-data.json',
+      text: vi.fn().mockResolvedValue(trainingDataJson),
+    };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [reloadedFile] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.stringContaining('verwirft deine aktuellen Änderungen'),
+    );
+    expect(reloadedFile.text).toHaveBeenCalledOnce();
+    expect(compiled.querySelector('.file-name')?.textContent).toContain('pilot-data.json');
+
+    const enterEditButton = [...compiled.querySelectorAll('.header-actions button')].find(
+      (button) => button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    enterEditButton.click();
+    fixture.detectChanges();
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(
+      (compiled.querySelector('.editor-form .editor-field input') as HTMLInputElement).value,
+    ).toBe('Passing for U11');
+  });
+
+  it('reloads the selected predefined dataset after its working copy was edited', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const datasetSelect = compiled.querySelector('.dataset-picker select') as HTMLSelectElement;
+    datasetSelect.value = 'sca-jg-2020';
+    datasetSelect.dispatchEvent(new Event('change'));
+    TestBed.inject(HttpTestingController)
+      .expectOne('data/sca_jg2020_data.json')
+      .flush(JSON.stringify(scaJg2020Data));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const editButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    editButton.click();
+    fixture.detectChanges();
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const titleInput = compiled.querySelector(
+      '.editor-form .editor-field input',
+    ) as HTMLInputElement;
+    titleInput.value = 'Edited predefined drill';
+    titleInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const reloadButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('neu laden'),
+    ) as HTMLButtonElement;
+    reloadButton.click();
+    TestBed.inject(HttpTestingController)
+      .expectOne('data/sca_jg2020_data.json')
+      .flush(JSON.stringify(scaJg2020Data));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.stringContaining('verwirft deine aktuellen Änderungen'),
+    );
+    const reopenEditor = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    reopenEditor.click();
+    fixture.detectChanges();
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(
+      (compiled.querySelector('.editor-form .editor-field input') as HTMLInputElement).value,
+    ).toBe(scaJg2020Data.drills[0]?.title);
+    expect(compiled.querySelector('.unsaved-status')).toBeNull();
+  });
+
+  it('clears a plan selection when editing removes that drill from its stage', async () => {
+    const data = parseTrainingData(JSON.parse(trainingDataJson) as unknown);
+    const dataWithAnotherStage = {
+      ...data,
+      catalog: {
+        ...data.catalog,
+        stages: [
+          ...data.catalog.stages,
+          { id: 'game', label: 'Game', order: 2, defaultDrillCount: 0 },
+        ],
+      },
+      drills: data.drills.map((drill) =>
+        drill.id === 'drill-001' ? { ...drill, availableStageIds: ['warmup', 'game'] } : drill,
+      ),
+    };
+
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = {
+      name: 'pilot-data.json',
+      text: async () => JSON.stringify(dataWithAnotherStage),
+    };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [file] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const drillSelect = compiled.querySelector('.slot .select-control select') as HTMLSelectElement;
+    drillSelect.value = 'drill-001';
+    drillSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const editButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    editButton.click();
+    fixture.detectChanges();
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const availableStageInputs = compiled.querySelectorAll(
+      '.editor-choice-group input[type="checkbox"]',
+    );
+    (availableStageInputs[0] as HTMLInputElement).click();
+    fixture.detectChanges();
+
+    expect((availableStageInputs[0] as HTMLInputElement).checked).toBe(false);
+    expect(
+      (compiled.querySelector('.slot .select-control select') as HTMLSelectElement).value,
+    ).toBe('');
+    (availableStageInputs[1] as HTMLInputElement).click();
+    fixture.detectChanges();
+    expect((availableStageInputs[1] as HTMLInputElement).checked).toBe(false);
+    expect(compiled.querySelector('.data-editor .message.error')).toBeNull();
   });
 
   it('loads a selected named dataset from its deployed data file', async () => {

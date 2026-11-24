@@ -42,6 +42,12 @@ export class App {
   protected readonly trainingData = signal<TrainingData | null>(null);
   protected readonly loadedFileName = signal<string | null>(null);
   protected readonly selectedLocalFileName = signal<string | null>(null);
+  protected readonly isEditingData = signal(false);
+  protected readonly selectedEditorDrillId = signal<string | null>(null);
+  protected readonly editorSearchQuery = signal('');
+  protected readonly editorStageFilterId = signal('');
+  protected readonly editorLabelFilterId = signal('');
+  protected readonly editorError = signal<TranslationMessage | null>(null);
   protected readonly loadError = signal<TranslationMessage | null>(null);
   protected readonly datasetCatalogError = signal<TranslationMessage | null>(null);
   protected readonly availableDatasets = signal<TrainingDatasetDefinition[]>([]);
@@ -69,7 +75,14 @@ export class App {
   protected readonly copyError = signal<TranslationMessage | null>(null);
   protected readonly downloadError = signal<TranslationMessage | null>(null);
   private readonly sourceJsonText = signal<string | null>(null);
-
+  private readonly initialTrainingData = signal<TrainingData | null>(null);
+  protected readonly hasUnsavedChanges = computed(() => {
+    const data = this.trainingData();
+    const initialData = this.initialTrainingData();
+    return (
+      data !== null && initialData !== null && JSON.stringify(data) !== JSON.stringify(initialData)
+    );
+  });
   constructor() {
     this.loadDatasetCatalog();
     effect(() => {
@@ -96,8 +109,24 @@ export class App {
       return;
     }
 
+    await this.loadPreloadedDataset(dataset, select);
+  }
+
+  protected async reloadSelectedDataset(): Promise<void> {
+    const dataset = this.availableDatasets().find((item) => item.id === this.selectedDatasetId());
+    if (dataset) {
+      await this.loadPreloadedDataset(dataset);
+    }
+  }
+
+  private async loadPreloadedDataset(
+    dataset: TrainingDatasetDefinition,
+    select?: HTMLSelectElement,
+  ): Promise<void> {
     if (!this.confirmDataReplacement(dataset.name)) {
-      select.value = this.selectedDatasetId();
+      if (select) {
+        select.value = this.selectedDatasetId();
+      }
       return;
     }
 
@@ -125,6 +154,264 @@ export class App {
   protected stages(): StageDefinition[] {
     const data = this.trainingData();
     return data ? [...data.catalog.stages].sort((a, b) => a.order - b.order) : [];
+  }
+
+  protected editorDrill(): Drill | undefined {
+    const selectedId = this.selectedEditorDrillId();
+    return this.trainingData()?.drills.find((drill) => drill.id === selectedId);
+  }
+
+  protected filteredEditorDrills(): Drill[] {
+    const data = this.trainingData();
+    if (!data) {
+      return [];
+    }
+
+    const query = this.editorSearchQuery().trim().toLowerCase();
+    const stageId = this.editorStageFilterId();
+    const labelId = this.editorLabelFilterId();
+    const labelsById = new Map(data.catalog.labels.map((label) => [label.id, label.label]));
+    return data.drills.filter(
+      (drill) =>
+        (!query ||
+          [
+            drill.title,
+            drill.descriptionMarkdown,
+            ...(drill.coachingPoints ?? []),
+            ...drill.labelIds.map((id) => labelsById.get(id) ?? ''),
+          ]
+            .join(' ')
+            .toLowerCase()
+            .includes(query)) &&
+        (!stageId || drill.availableStageIds.includes(stageId)) &&
+        (!labelId || drill.labelIds.includes(labelId)),
+    );
+  }
+
+  protected onEditorSearchChanged(event: Event): void {
+    const input = event.target;
+    if (input instanceof HTMLInputElement) {
+      this.editorSearchQuery.set(input.value);
+    }
+  }
+
+  protected onEditorStageFilterChanged(event: Event): void {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const stageId = select.value;
+    if (!stageId || this.trainingData()?.catalog.stages.some((stage) => stage.id === stageId)) {
+      this.editorStageFilterId.set(stageId);
+    } else {
+      select.value = this.editorStageFilterId();
+    }
+  }
+
+  protected onEditorLabelFilterChanged(event: Event): void {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const labelId = select.value;
+    if (!labelId || this.trainingData()?.catalog.labels.some((label) => label.id === labelId)) {
+      this.editorLabelFilterId.set(labelId);
+    } else {
+      select.value = this.editorLabelFilterId();
+    }
+  }
+
+  protected clearEditorFilters(): void {
+    this.editorSearchQuery.set('');
+    this.editorStageFilterId.set('');
+    this.editorLabelFilterId.set('');
+  }
+
+  protected toggleDataEditor(): void {
+    this.isEditingData.update((editing) => !editing);
+    this.selectedEditorDrillId.set(null);
+  }
+
+  protected returnToDrillSearch(): void {
+    this.selectedEditorDrillId.set(null);
+  }
+
+  protected selectEditorDrill(drillId: string): void {
+    if (this.trainingData()?.drills.some((drill) => drill.id === drillId)) {
+      this.selectedEditorDrillId.set(drillId);
+    }
+  }
+
+  protected addDrill(): void {
+    const data = this.trainingData();
+    const firstStage = this.stages()[0];
+    if (!data || !firstStage) {
+      return;
+    }
+
+    const title = this.translate.instant('editor.newDrillTitle');
+    if (typeof title !== 'string') {
+      throw new Error('The new drill title must be a string.');
+    }
+
+    const existingIds = new Set(data.drills.map((drill) => drill.id));
+    let id = 'new-drill';
+    let suffix = 2;
+    while (existingIds.has(id)) {
+      id = `new-drill-${suffix}`;
+      suffix += 1;
+    }
+
+    const drill: Drill = {
+      id,
+      title,
+      availableStageIds: [firstStage.id],
+      labelIds: [],
+      descriptionMarkdown: '',
+      modificationIds: [],
+    };
+    if (
+      !this.applyTrainingDataChange((current) => ({
+        ...current,
+        drills: [...current.drills, drill],
+      }))
+    ) {
+      return;
+    }
+    this.selectedEditorDrillId.set(drill.id);
+    this.clearEditorFilters();
+  }
+
+  protected confirmDeleteDrill(drill: Drill): void {
+    const message = this.translate.instant('editor.deleteDrillConfirmation', {
+      title: drill.title,
+    });
+    if (typeof message !== 'string') {
+      throw new Error('The drill deletion confirmation must be a string.');
+    }
+    if (typeof window !== 'undefined' && !window.confirm(message)) {
+      return;
+    }
+
+    if (
+      !this.applyTrainingDataChange((data) => ({
+        ...data,
+        drills: data.drills.filter((candidate) => candidate.id !== drill.id),
+      }))
+    ) {
+      return;
+    }
+
+    this.stagePlans.update((plans) =>
+      plans.map((plan) => ({
+        ...plan,
+        slots: plan.slots.map((slot) =>
+          slot.drillId === drill.id ? { drillId: null, modificationSelections: {} } : slot,
+        ),
+      })),
+    );
+    this.selectedEditorDrillId.set(null);
+  }
+
+  protected onDrillTitleChanged(drillId: string, event: Event): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+    if (input.value.trim().length === 0) {
+      input.value = this.trainingData()?.drills.find((drill) => drill.id === drillId)?.title ?? '';
+      this.editorError.set({ key: 'editor.titleRequired' });
+      return;
+    }
+    if (!this.updateDrill(drillId, (drill) => ({ ...drill, title: input.value }))) {
+      input.value = this.trainingData()?.drills.find((drill) => drill.id === drillId)?.title ?? '';
+    }
+  }
+
+  protected onDrillStageToggled(drill: Drill, stageId: string, event: Event): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+
+    const availableStageIds = input.checked
+      ? [...drill.availableStageIds, stageId]
+      : drill.availableStageIds.filter((id) => id !== stageId);
+    if (!this.updateDrill(drill.id, (current) => ({ ...current, availableStageIds }))) {
+      input.checked = drill.availableStageIds.includes(stageId);
+      return;
+    }
+    this.stagePlans.update((plans) =>
+      plans.map((plan) => ({
+        ...plan,
+        slots: plan.slots.map((slot) =>
+          slot.drillId === drill.id && !availableStageIds.includes(plan.stageId)
+            ? { drillId: null, modificationSelections: {} }
+            : slot,
+        ),
+      })),
+    );
+  }
+
+  protected onDrillLabelToggled(drill: Drill, labelId: string, event: Event): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+
+    const labelIds = input.checked
+      ? [...drill.labelIds, labelId]
+      : drill.labelIds.filter((id) => id !== labelId);
+    if (!this.updateDrill(drill.id, (current) => ({ ...current, labelIds }))) {
+      input.checked = drill.labelIds.includes(labelId);
+    }
+  }
+
+  private updateDrill(drillId: string, update: (drill: Drill) => Drill): boolean {
+    return this.applyTrainingDataChange((data) => ({
+      ...data,
+      drills: data.drills.map((drill) => (drill.id === drillId ? update(drill) : drill)),
+    }));
+  }
+
+  private applyTrainingDataChange(update: (data: TrainingData) => TrainingData): boolean {
+    const currentData = this.trainingData();
+    if (!currentData) {
+      return false;
+    }
+
+    const nextData = update(currentData);
+    const validationError = this.trainingDataValidationError(nextData);
+    if (validationError) {
+      this.editorError.set({
+        key: 'editor.changeRejected',
+        detail: {
+          key: validationError.translationKey,
+          params: validationError.params,
+        },
+      });
+      return false;
+    }
+
+    this.trainingData.set(nextData);
+    this.editorError.set(null);
+    this.downloadError.set(null);
+    this.resetCopyStatus();
+    return true;
+  }
+
+  private trainingDataValidationError(data: TrainingData): TrainingDataValidationError | null {
+    try {
+      parseTrainingData(data);
+      return null;
+    } catch (error) {
+      if (!(error instanceof TrainingDataValidationError)) {
+        throw error;
+      }
+      return error;
+    }
   }
 
   protected mainFilterLabels(): LabelDefinition[] {
@@ -319,7 +606,26 @@ export class App {
 
   protected downloadJsonCopy(): void {
     const sourceFileName = this.loadedFileName();
-    const sourceContent = this.sourceJsonText();
+    const data = this.trainingData();
+    const originalContent = this.sourceJsonText();
+    if (!data) {
+      return;
+    }
+
+    const validationError = this.trainingDataValidationError(data);
+    if (validationError) {
+      this.downloadError.set({
+        key: 'editor.exportValidationFailed',
+        detail: {
+          key: validationError.translationKey,
+          params: validationError.params,
+        },
+      });
+      return;
+    }
+    const sourceContent = this.hasUnsavedChanges()
+      ? JSON.stringify(data, null, 2)
+      : originalContent;
     if (!sourceFileName || sourceContent === null) {
       return;
     }
@@ -344,6 +650,8 @@ export class App {
       link.hidden = true;
       document.body.appendChild(link);
       link.click();
+      this.sourceJsonText.set(sourceContent);
+      this.initialTrainingData.set(data);
     } catch {
       this.downloadError.set({ key: 'errors.downloadFailed' });
     } finally {
@@ -423,7 +731,12 @@ export class App {
       return true;
     }
 
-    const message = this.translate.instant('datasets.overwriteConfirmation', { name });
+    const message = this.translate.instant(
+      this.hasUnsavedChanges()
+        ? 'datasets.overwriteEditedConfirmation'
+        : 'datasets.overwriteConfirmation',
+      { name },
+    );
     if (typeof message !== 'string') {
       throw new Error('The dataset replacement confirmation must be a string.');
     }
@@ -458,10 +771,17 @@ export class App {
     }
 
     this.trainingData.set(data);
+    this.initialTrainingData.set(data);
     this.loadedFileName.set(fileName);
     this.selectedLocalFileName.set(datasetId === null ? fileName : null);
     this.sourceJsonText.set(contents);
     this.selectedDatasetId.set(datasetId ?? '');
+    this.selectedEditorDrillId.set(null);
+    this.isEditingData.set(false);
+    this.editorError.set(null);
+    this.editorSearchQuery.set('');
+    this.editorStageFilterId.set('');
+    this.editorLabelFilterId.set('');
     this.downloadError.set(null);
     this.selectedLabelIds.set(new Set());
     this.planError.set(null);

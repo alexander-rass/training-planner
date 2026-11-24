@@ -1,6 +1,6 @@
 # Roadmap and Copilot Handoff
 
-Last reviewed: 2026-11-22
+Last reviewed: 2026-11-24
 
 This is a suggested roadmap, not a commitment to implement every item. The app already covers the core pilot workflow. Pick one follow-up at a time and confirm the desired behavior before making larger product decisions.
 
@@ -13,15 +13,20 @@ Implemented:
 - Load a local training-data JSON file or select a preloaded dataset from [`data/datasets.json`](./data/datasets.json).
 - Validate the JSON and its references when loading.
 - Filter drills by data-defined labels, select drills for stages, and choose per-drill modifications.
-- Preview/copy the plan as WhatsApp-formatted text and download the loaded JSON.
+- Add/delete drills and edit their titles, available stages, and label assignments in an in-memory working copy.
+- Search by title, description, coaching point, or label, and filter by stage or label. Open drills in a separate detail screen, with a back action that retains search filters.
+- Validate edits immediately and retain the prior valid data when a change is rejected. Reload the selected preloaded dataset explicitly, including after edits.
+- Preview/copy the plan as WhatsApp-formatted text and export the current training data as JSON.
 - German and English interface strings. The browser's preferred language is checked on each startup; German is the fallback. The choice is not saved.
 - Build and deploy scripts include the project's MIT license and generated third-party notices.
 
 Important current constraints:
 
-- The training data is maintained outside the app. Downloading JSON currently preserves the loaded source; it does not edit or serialize user changes.
-- The selected plan exists only in memory and is lost on refresh.
-- Stage order/default drill counts come from the data. The app does not currently edit data or provide a diagram editor.
+- Training-data editing is an initial increment: only drill creation/deletion, titles, stage availability, and drill label assignments are editable so far. Labels, stages, modifications, descriptions, and coaching points are not yet editable.
+- Edits and the selected plan exist only in memory. Refreshing loses both. Export downloads the working copy; it does not overwrite the source file or store data in the browser.
+- Replacing a dataset warns before discarding edits that have not been exported. Deleting a drill clears any selected plan slots for it.
+- A drill may be unassigned from all stages. Creating a new dataset without loading JSON is deferred until the stage editor can make a blank dataset useful.
+- Stage order/default drill counts come from the data. The app does not yet edit the stage catalog or provide a diagram editor.
 - Training content remains in the language authored in its JSON file. Only the app interface is localized.
 - Markdown is rendered for descriptions/coaching points, but raw HTML and Markdown images are not rendered. Do not bypass Angular's normal HTML sanitization or load arbitrary external images.
 - The current MIT intent includes the app, handcrafted training data, and the edited AI-generated icon. Third-party dependencies and third-party names/logos/material may have separate rights.
@@ -34,18 +39,20 @@ See [`README.md`](./README.md) for the current data format, local commands, and 
 
 Before adding features, use the app to create and share a few actual sessions. Record friction points and decide which of the optional features below would solve a real problem. Keep the current lightweight workflow if it is sufficient.
 
-### 2. Decide whether to add in-app training-data editing
+### 2. Expand in-app training-data editing
 
-This is the most substantial likely next feature, but the current workflow intentionally has the trainer maintain JSON outside the app. If editing is desired, first agree on its scope and data-safety behavior.
+The editor is a separate mode and works on an in-memory copy. Continue in small increments:
 
-Potential scope:
+1. Add a visual Markdown description editor with bold, italic, numbered-list, and bullet-list controls. Keep the saved format as Markdown, show formatted text instead of Markdown syntax, and preserve the existing safe-rendering rules.
+2. Add, edit, reorder, and delete coaching points.
+3. Add label management: create, rename, and delete labels; assign them to drills; and choose main-filter labels.
+4. Add modification management: create, edit, and delete general and drill-specific modifications and their options, while keeping stable IDs and valid references.
+5. Add stage management: create, rename, reorder, and delete stages; edit default drill counts; and keep stage references valid.
+6. Allow creating a blank `schemaVersion: 1` working copy from the welcome screen. Guide the trainer to create catalog entries before drills; do not require a preloaded or local JSON file.
 
-- Edit drill titles, descriptions, coaching points, labels, stages, and modification options.
-- Validate all edits and references before export.
-- Keep edits in a working copy and export a complete JSON file; do not silently overwrite the original local file.
-- Clearly show unsaved changes and confirm before replacing edited data with a different dataset or file.
+When deleting an in-use label, stage, or modification, warn with the reference count and a short sample when the list is long. Let the trainer cancel or reassign references before deletion. For modifications, reassignment may also require mapping selected options. Keep the selected plan in memory where possible, but clear entries that are no longer valid; do not add plan or edit persistence.
 
-The UI, editing all content types, and replacing the source file are separate decisions. Start with the smallest useful editing scope.
+Validate the complete working copy before export. Preserve optional fields, including `diagram`, through every edit and export so a future diagram feature can use them without requiring the editor to understand diagrams yet.
 
 ### 3. Design and add drill diagrams
 
@@ -66,7 +73,7 @@ Possible additions include durations, a plan title/date, changing stage order, d
 ### 5. Improve data and release confidence
 
 - Add a check that every preloaded dataset listed in the catalog exists and passes the same schema/reference validation used at runtime.
-- Keep focused tests for loading, replacement confirmation, WhatsApp formatting, localization, and JSON export.
+- Keep focused tests for loading, replacement confirmation, editor operations, reference cleanup, WhatsApp formatting, localization, and JSON export.
 - Check keyboard use, screen-reader labels, and narrow-screen layout as the UI grows.
 - Keep license notices in the deployed output. Do not publish/deploy unless explicitly requested.
 
@@ -79,7 +86,7 @@ Share this document and [`README.md`](./README.md), then give the new session a 
 - Keep user-facing UI text in German/English translation resources. Dataset content is not translated.
 - The user's preferred language is read from browser preferences at every startup. Do not add cookies or persist language selection.
 - Preserve the JSON validation and normal Angular sanitization. Raw HTML and Markdown images are intentionally not rendered.
-- The selected plan is transient. Do not add persistence, change the stage model, or expand the data editor without confirming the desired behavior.
+- The selected plan and editor changes are transient. Do not add browser persistence.
 - The user prefers to do manual browser checks; run relevant unit tests/builds and give a concise manual-check list when appropriate.
 - Check `git status` before editing and preserve unrelated or untracked user files.
 
@@ -94,4 +101,4 @@ npm run build
 
 Suggested prompt to paste into a new session:
 
-> This is the static Angular soccer training planner described in `README.md` and `ROADMAP.md`. Please read both first, inspect the current worktree, and preserve unrelated changes. Work only on this task: [describe one specific roadmap item]. Ask before making product decisions that affect data editing, persistence, stage behavior, or diagrams. Run the relevant tests/build and do not deploy.
+> This is the static Angular soccer training planner described in `README.md` and `ROADMAP.md`. Please read both first, inspect the current worktree, and preserve unrelated changes. Continue the agreed data-editor roadmap one increment at a time. Do not add browser persistence; preserve optional diagram data. Ask before making decisions outside the agreed scope. Run the relevant tests/build and do not deploy.

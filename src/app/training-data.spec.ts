@@ -42,6 +42,15 @@ describe('parseTrainingData', () => {
     expect(data.drills[0]?.title).toBe('Passing drill');
   });
 
+  it('accepts a drill with no available stages', () => {
+    const data = {
+      ...validData,
+      drills: [{ ...validData.drills[0], availableStageIds: [] }],
+    };
+
+    expect(parseTrainingData(data).drills[0]?.availableStageIds).toEqual([]);
+  });
+
   it('rejects references to unknown labels', () => {
     const data = {
       ...validData,

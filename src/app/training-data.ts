@@ -135,11 +135,7 @@ export function parseTrainingData(value: unknown): TrainingData {
     return {
       id: asNonEmptyString(drill['id'], `${path}.id`),
       title: asNonEmptyString(drill['title'], `${path}.title`),
-      availableStageIds: asStringList(
-        drill['availableStageIds'],
-        `${path}.availableStageIds`,
-        false,
-      ),
+      availableStageIds: asStringList(drill['availableStageIds'], `${path}.availableStageIds`),
       labelIds: asStringList(drill['labelIds'], `${path}.labelIds`),
       descriptionMarkdown: asString(drill['descriptionMarkdown'], `${path}.descriptionMarkdown`),
       ...(coachingPoints === undefined ? {} : { coachingPoints }),
