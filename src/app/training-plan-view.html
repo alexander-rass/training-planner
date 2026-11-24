@@ -1,0 +1,184 @@
+<div [hidden]="!isVisible">
+  <section class="filters" aria-labelledby="filters-heading">
+    <div class="section-heading">
+      <div>
+        <h2 id="filters-heading">{{ 'filters.heading' | translate }}</h2>
+        <p>{{ 'filters.multipleLabels' | translate }}</p>
+      </div>
+      @if (selectedLabelIds().size > 0) {
+        <button class="text-button" type="button" (click)="clearLabelFilters()">
+          {{ 'filters.clear' | translate }}
+        </button>
+      }
+    </div>
+
+    <div class="filter-list" [attr.aria-label]="'filters.mainAria' | translate">
+      @for (label of mainFilterLabels(); track label.id) {
+        <button
+          class="filter-chip"
+          [class.selected]="isLabelSelected(label.id)"
+          [attr.aria-pressed]="isLabelSelected(label.id)"
+          type="button"
+          (click)="toggleLabel(label.id)"
+        >
+          {{ label.label }}
+        </button>
+      }
+    </div>
+
+    @if (additionalFilterLabels().length > 0) {
+      <details class="additional-filters">
+        <summary>
+          {{ 'filters.additional' | translate: { count: additionalFilterLabels().length } }}
+        </summary>
+        <div class="filter-list">
+          @for (label of additionalFilterLabels(); track label.id) {
+            <button
+              class="filter-chip"
+              [class.selected]="isLabelSelected(label.id)"
+              [attr.aria-pressed]="isLabelSelected(label.id)"
+              type="button"
+              (click)="toggleLabel(label.id)"
+            >
+              {{ label.label }}
+            </button>
+          }
+        </div>
+      </details>
+    }
+  </section>
+
+  @if (planError(); as error) {
+    <p class="message error" role="alert">{{ error.key | translate: error.params }}</p>
+  }
+
+  <section class="stages" [attr.aria-label]="'stages.aria' | translate">
+    @for (stage of stages(); track stage.id) {
+      <article class="stage">
+        <header class="stage-header">
+          <div>
+            <p class="stage-number">
+              {{ 'stages.number' | translate: { order: stage.order } }}
+            </p>
+            <h2>{{ stage.label }}</h2>
+          </div>
+          <label class="count-control">
+            <span>{{ 'stages.drillCount' | translate }}</span>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              [value]="slotsForStage(stage.id).length"
+              (change)="onDrillCountChanged(stage.id, $event)"
+            />
+          </label>
+        </header>
+
+        @if (slotsForStage(stage.id).length === 0) {
+          <p class="empty-stage">{{ 'stages.empty' | translate }}</p>
+        } @else {
+          <div class="slots">
+            @for (slot of slotsForStage(stage.id); track $index; let index = $index) {
+              <section class="slot">
+                <h3>{{ 'drills.slotNumber' | translate: { index: index + 1 } }}</h3>
+                <label class="select-control">
+                  <span>{{ 'drills.choose' | translate }}</span>
+                  <select
+                    [value]="slot.drillId ?? ''"
+                    (change)="onDrillSelected(stage.id, index, $event)"
+                  >
+                    <option value="">{{ 'drills.selectPlaceholder' | translate }}</option>
+                    @for (drill of selectableDrills(stage.id, slot.drillId); track drill.id) {
+                      <option [value]="drill.id">{{ drill.title }}</option>
+                    }
+                  </select>
+                </label>
+
+                @if (drillForSlot(slot); as drill) {
+                  <div class="drill-details">
+                    <div
+                      class="description markdown-content"
+                      [innerHTML]="drill.descriptionMarkdown | markdown"
+                    ></div>
+                    @if (drill.coachingPoints?.length) {
+                      <section class="coaching-points">
+                        <h4>{{ 'drills.coachingPoints' | translate }}</h4>
+                        <ul>
+                          @for (point of drill.coachingPoints; track $index) {
+                            <li>
+                              <div class="markdown-content" [innerHTML]="point | markdown"></div>
+                            </li>
+                          }
+                        </ul>
+                      </section>
+                    }
+
+                    @if (modificationsForDrill(drill).length > 0) {
+                      <div class="modifications">
+                        @for (modification of modificationsForDrill(drill); track modification.id) {
+                          <label class="select-control">
+                            <span>{{ modification.label }}</span>
+                            <select
+                              [value]="slot.modificationSelections[modification.id] ?? ''"
+                              (change)="
+                                onModificationSelected(stage.id, index, modification, $event)
+                              "
+                            >
+                              <option value="">
+                                {{ 'modifications.chooseOption' | translate }}
+                              </option>
+                              @for (option of modification.options; track option.id) {
+                                <option [value]="option.id">{{ option.label }}</option>
+                              }
+                            </select>
+                          </label>
+                        }
+                      </div>
+                    }
+                  </div>
+                } @else if (selectableDrills(stage.id, slot.drillId).length === 0) {
+                  <p class="empty-slot">{{ 'drills.noLabelMatches' | translate }}</p>
+                }
+              </section>
+            }
+          </div>
+        }
+      </article>
+    }
+  </section>
+
+  <section class="share" aria-labelledby="share-heading">
+    <div class="section-heading">
+      <div>
+        <h2 id="share-heading">{{ 'share.heading' | translate }}</h2>
+        <p>{{ 'share.description' | translate }}</p>
+      </div>
+      <button
+        class="copy-button"
+        type="button"
+        [disabled]="!whatsappMessage()"
+        (click)="copyWhatsAppMessage()"
+      >
+        {{ (copied() ? 'share.copiedButton' : 'share.copyButton') | translate }}
+      </button>
+    </div>
+
+    @if (whatsappMessage()) {
+      <div
+        class="message-preview markdown-content"
+        role="region"
+        [attr.aria-label]="'share.previewAria' | translate"
+        [innerHTML]="whatsappPreview() | markdown"
+      ></div>
+    } @else {
+      <p class="empty-share">{{ 'share.empty' | translate }}</p>
+    }
+
+    @if (copied()) {
+      <p class="copy-success" role="status">{{ 'share.copied' | translate }}</p>
+    }
+    @if (copyError(); as error) {
+      <p class="message error" role="alert">{{ error.key | translate: error.params }}</p>
+    }
+  </section>
+</div>

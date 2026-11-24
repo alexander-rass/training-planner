@@ -1,0 +1,176 @@
+<section class="data-editor" aria-labelledby="editor-heading" [hidden]="!isEditing">
+  <div class="section-heading">
+    <div>
+      <h2 id="editor-heading">{{ 'editor.heading' | translate }}</h2>
+      <p>{{ 'editor.description' | translate }}</p>
+    </div>
+    @if (hasUnsavedChanges()) {
+      <p class="unsaved-status" role="status">{{ 'editor.unsavedChanges' | translate }}</p>
+    }
+  </div>
+  @if (editorError(); as error) {
+    <div class="message error" role="alert">
+      <p>{{ error.key | translate: error.params }}</p>
+      @if (error.detail; as detail) {
+        <p>{{ detail.key | translate: detail.params }}</p>
+      }
+    </div>
+  }
+
+  @if (editorDrill(); as drill) {
+    <section class="editor-detail-page" aria-labelledby="drill-editor-title">
+      <button class="text-button editor-back-button" type="button" (click)="returnToDrillSearch()">
+        {{ 'editor.backToSearch' | translate }}
+      </button>
+      <div class="editor-form">
+        <div class="editor-form-heading">
+          <h3 id="drill-editor-title">{{ drill.title }}</h3>
+          <button
+            class="text-button delete-button"
+            type="button"
+            [disabled]="isLoading"
+            (click)="confirmDeleteDrill(drill)"
+          >
+            {{ 'editor.deleteDrill' | translate }}
+          </button>
+        </div>
+
+        <label class="editor-field">
+          <span>{{ 'editor.title' | translate }}</span>
+          <input
+            type="text"
+            required
+            [disabled]="isLoading"
+            [value]="drill.title"
+            [attr.aria-invalid]="drill.title.trim().length === 0"
+            (change)="onDrillTitleChanged(drill.id, $event)"
+          />
+        </label>
+
+        <fieldset class="editor-choice-group">
+          <legend>{{ 'editor.availableStages' | translate }}</legend>
+          @for (stage of stages(); track stage.id) {
+            <label class="editor-checkbox">
+              <input
+                type="checkbox"
+                [disabled]="isLoading"
+                [checked]="drill.availableStageIds.includes(stage.id)"
+                (change)="onDrillStageToggled(drill, stage.id, $event)"
+              />
+              <span>{{ stage.label }}</span>
+            </label>
+          }
+        </fieldset>
+
+        <fieldset class="editor-choice-group">
+          <legend>{{ 'editor.labels' | translate }}</legend>
+          @for (label of trainingData()?.catalog?.labels ?? []; track label.id) {
+            <label class="editor-checkbox">
+              <input
+                type="checkbox"
+                [disabled]="isLoading"
+                [checked]="drill.labelIds.includes(label.id)"
+                (change)="onDrillLabelToggled(drill, label.id, $event)"
+              />
+              <span>{{ label.label }}</span>
+            </label>
+          } @empty {
+            <p class="editor-hint">{{ 'editor.noLabels' | translate }}</p>
+          }
+        </fieldset>
+      </div>
+    </section>
+  } @else {
+    @if (trainingData(); as data) {
+      <section class="editor-browser-page" [attr.aria-label]="'editor.searchPageAria' | translate">
+        <div class="editor-actions">
+          <button
+            class="copy-button"
+            type="button"
+            [disabled]="stages().length === 0 || isLoading"
+            (click)="addDrill()"
+          >
+            {{ 'editor.addDrill' | translate }}
+          </button>
+          @if (stages().length === 0) {
+            <p class="editor-hint">{{ 'editor.noStageToCreate' | translate }}</p>
+          }
+        </div>
+
+        <div class="editor-browser">
+          <label class="editor-field">
+            <span>{{ 'editor.search' | translate }}</span>
+            <input
+              type="search"
+              [value]="editorSearchQuery()"
+              (input)="onEditorSearchChanged($event)"
+            />
+          </label>
+
+          <div class="editor-browser-filters">
+            <label class="select-control">
+              <span>{{ 'editor.filterByStage' | translate }}</span>
+              <select (change)="onEditorStageFilterChanged($event)">
+                <option value="" [selected]="!editorStageFilterId()">
+                  {{ 'editor.allStages' | translate }}
+                </option>
+                @for (stage of stages(); track stage.id) {
+                  <option [value]="stage.id" [selected]="stage.id === editorStageFilterId()">
+                    {{ stage.label }}
+                  </option>
+                }
+              </select>
+            </label>
+            <label class="select-control">
+              <span>{{ 'editor.filterByLabel' | translate }}</span>
+              <select (change)="onEditorLabelFilterChanged($event)">
+                <option value="" [selected]="!editorLabelFilterId()">
+                  {{ 'editor.allLabels' | translate }}
+                </option>
+                @for (label of data.catalog.labels; track label.id) {
+                  <option [value]="label.id" [selected]="label.id === editorLabelFilterId()">
+                    {{ label.label }}
+                  </option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <div class="editor-results-heading">
+            <p>
+              {{
+                'editor.matchCount'
+                  | translate: { count: filteredEditorDrills().length, total: data.drills.length }
+              }}
+            </p>
+            @if (editorSearchQuery() || editorStageFilterId() || editorLabelFilterId()) {
+              <button class="text-button" type="button" (click)="clearEditorFilters()">
+                {{ 'editor.clearFilters' | translate }}
+              </button>
+            }
+          </div>
+
+          <nav class="editor-drill-list" [attr.aria-label]="'editor.drillList' | translate">
+            @for (drill of filteredEditorDrills(); track drill.id) {
+              <button
+                type="button"
+                class="editor-drill-choice"
+                [disabled]="isLoading"
+                (click)="selectEditorDrill(drill.id)"
+              >
+                {{ drill.title }}
+              </button>
+            } @empty {
+              <p class="editor-hint">
+                {{
+                  (data.drills.length === 0 ? 'editor.noDrills' : 'editor.noDrillMatches')
+                    | translate
+                }}
+              </p>
+            }
+          </nav>
+        </div>
+      </section>
+    }
+  }
+</section>
