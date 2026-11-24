@@ -8,6 +8,34 @@ body {
   box-sizing: border-box;
 }
 
+app-root app-training-data-editor,
+app-root app-training-plan-view {
+  display: block;
+}
+
+app-root h1,
+app-root h2,
+app-root h3,
+app-root p {
+  margin-top: 0;
+}
+
+app-root h1 {
+  margin-bottom: 0;
+  font-size: clamp(1.8rem, 5vw, 2.5rem);
+  line-height: 1.1;
+}
+
+app-root h2 {
+  margin-bottom: 0;
+  font-size: 1.35rem;
+}
+
+app-root h3 {
+  margin-bottom: 1rem;
+  font-size: 1.05rem;
+}
+
 app-root .section-heading {
   display: flex;
   align-items: center;
@@ -91,6 +119,14 @@ app-root .error {
   background: #fff4f2;
   color: #782f29;
   overflow-wrap: anywhere;
+}
+
+app-root .markdown-content > :first-child {
+  margin-top: 0;
+}
+
+app-root .markdown-content > :last-child {
+  margin-bottom: 0;
 }
 
 app-root .data-editor {

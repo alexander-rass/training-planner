@@ -236,7 +236,9 @@ describe('App', () => {
     titleInput.value = 'Updated passing drill';
     titleInput.dispatchEvent(new Event('change'));
     fixture.detectChanges();
-    expect(fixture.componentInstance['stagePlans']()[0]?.slots[0]?.drillId).toBe('drill-001');
+    expect(
+      (compiled.querySelector('.slot .select-control select') as HTMLSelectElement).value,
+    ).toBe('drill-001');
     expect(compiled.querySelector('.unsaved-status')?.textContent).toContain(
       'Bearbeitete Daten wurden noch nicht exportiert.',
     );
