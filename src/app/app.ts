@@ -7,13 +7,13 @@ import {
   Drill,
   LabelDefinition,
   ModificationDefinition,
-  parseTrainingData,
   StageDefinition,
   TrainingData,
   TrainingDataValidationError,
 } from './training-data';
 import { formatWhatsAppPlan, PlanSlot, StagePlan, whatsAppToMarkdown } from './training-plan';
 import { createJsonDownloadPayload } from './training-data-download';
+import { TrainingDataStore } from './training-data-store';
 import {
   parseTrainingDatasetCatalog,
   TrainingDatasetCatalogError,
@@ -35,11 +35,13 @@ interface TranslationMessage {
 export class App {
   private readonly http = inject(HttpClient);
   private readonly translate = inject(TranslateService);
+  private readonly trainingDataStore = inject(TrainingDataStore);
   private readonly translatedDocumentTitle = this.translate.translate('app.documentTitle');
   private readonly translatedCoachingPointsLabel =
     this.translate.translate('drills.coachingPoints');
 
-  protected readonly trainingData = signal<TrainingData | null>(null);
+  protected readonly trainingData = this.trainingDataStore.trainingData;
+  protected readonly hasUnsavedChanges = this.trainingDataStore.hasUnsavedChanges;
   protected readonly loadedFileName = signal<string | null>(null);
   protected readonly selectedLocalFileName = signal<string | null>(null);
   protected readonly isEditingData = signal(false);
@@ -74,15 +76,6 @@ export class App {
   protected readonly copied = signal(false);
   protected readonly copyError = signal<TranslationMessage | null>(null);
   protected readonly downloadError = signal<TranslationMessage | null>(null);
-  private readonly sourceJsonText = signal<string | null>(null);
-  private readonly initialTrainingData = signal<TrainingData | null>(null);
-  protected readonly hasUnsavedChanges = computed(() => {
-    const data = this.trainingData();
-    const initialData = this.initialTrainingData();
-    return (
-      data !== null && initialData !== null && JSON.stringify(data) !== JSON.stringify(initialData)
-    );
-  });
   constructor() {
     this.loadDatasetCatalog();
     effect(() => {
@@ -377,13 +370,7 @@ export class App {
   }
 
   private applyTrainingDataChange(update: (data: TrainingData) => TrainingData): boolean {
-    const currentData = this.trainingData();
-    if (!currentData) {
-      return false;
-    }
-
-    const nextData = update(currentData);
-    const validationError = this.trainingDataValidationError(nextData);
+    const validationError = this.trainingDataStore.applyChange(update);
     if (validationError) {
       this.editorError.set({
         key: 'editor.changeRejected',
@@ -395,23 +382,10 @@ export class App {
       return false;
     }
 
-    this.trainingData.set(nextData);
     this.editorError.set(null);
     this.downloadError.set(null);
     this.resetCopyStatus();
     return true;
-  }
-
-  private trainingDataValidationError(data: TrainingData): TrainingDataValidationError | null {
-    try {
-      parseTrainingData(data);
-      return null;
-    } catch (error) {
-      if (!(error instanceof TrainingDataValidationError)) {
-        throw error;
-      }
-      return error;
-    }
   }
 
   protected mainFilterLabels(): LabelDefinition[] {
@@ -607,26 +581,27 @@ export class App {
   protected downloadJsonCopy(): void {
     const sourceFileName = this.loadedFileName();
     const data = this.trainingData();
-    const originalContent = this.sourceJsonText();
     if (!data) {
       return;
     }
 
-    const validationError = this.trainingDataValidationError(data);
-    if (validationError) {
+    let sourceContent: string;
+    try {
+      sourceContent = this.trainingDataStore.exportContent();
+    } catch (error) {
+      if (!(error instanceof TrainingDataValidationError)) {
+        throw error;
+      }
       this.downloadError.set({
         key: 'editor.exportValidationFailed',
         detail: {
-          key: validationError.translationKey,
-          params: validationError.params,
+          key: error.translationKey,
+          params: error.params,
         },
       });
       return;
     }
-    const sourceContent = this.hasUnsavedChanges()
-      ? JSON.stringify(data, null, 2)
-      : originalContent;
-    if (!sourceFileName || sourceContent === null) {
+    if (!sourceFileName) {
       return;
     }
 
@@ -650,8 +625,7 @@ export class App {
       link.hidden = true;
       document.body.appendChild(link);
       link.click();
-      this.sourceJsonText.set(sourceContent);
-      this.initialTrainingData.set(data);
+      this.trainingDataStore.markExported(sourceContent);
     } catch {
       this.downloadError.set({ key: 'errors.downloadFailed' });
     } finally {
@@ -744,37 +718,30 @@ export class App {
   }
 
   private applyTrainingData(contents: string, fileName: string, datasetId: string | null): void {
-    let parsed: unknown;
     try {
-      parsed = JSON.parse(contents) as unknown;
+      this.trainingDataStore.load(contents);
     } catch (error) {
-      if (!(error instanceof SyntaxError)) {
-        throw error;
+      if (error instanceof SyntaxError) {
+        this.loadError.set({ key: 'errors.invalidJson', params: { fileName } });
+        return;
       }
-      this.loadError.set({ key: 'errors.invalidJson', params: { fileName } });
-      return;
+      if (error instanceof TrainingDataValidationError) {
+        this.loadError.set({
+          key: 'errors.invalidTrainingData',
+          params: { fileName },
+          detail: { key: error.translationKey, params: error.params },
+        });
+        return;
+      }
+      throw error;
     }
 
-    let data: TrainingData;
-    try {
-      data = parseTrainingData(parsed);
-    } catch (error) {
-      if (!(error instanceof TrainingDataValidationError)) {
-        throw error;
-      }
-      this.loadError.set({
-        key: 'errors.invalidTrainingData',
-        params: { fileName },
-        detail: { key: error.translationKey, params: error.params },
-      });
-      return;
+    const data = this.trainingData();
+    if (!data) {
+      throw new Error('Training data was loaded but not available in the store.');
     }
-
-    this.trainingData.set(data);
-    this.initialTrainingData.set(data);
     this.loadedFileName.set(fileName);
     this.selectedLocalFileName.set(datasetId === null ? fileName : null);
-    this.sourceJsonText.set(contents);
     this.selectedDatasetId.set(datasetId ?? '');
     this.selectedEditorDrillId.set(null);
     this.isEditingData.set(false);
