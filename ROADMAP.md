@@ -43,21 +43,38 @@ See [`README.md`](./README.md) for the current data format, local commands, and 
 
 ## Suggested roadmap
 
-### 1. Validate the real trainer workflow
+### 1. Add Playwright smoke tests
 
-Before adding features, use the app to create and share a few actual sessions. Record friction points and decide which of the optional features below would solve a real problem. Keep the current lightweight workflow if it is sufficient.
+Add a small browser-level suite using Playwright. The current Angular/Vitest tests exercise components and app integration in jsdom, but do not launch a real browser. There is no browser-test setup or CI workflow yet.
 
-### 2. Expand in-app training-data editing
+Start with a few user-visible flows rather than duplicating detailed unit-test coverage:
 
-The editor is a separate mode and works on an in-memory copy. Continue in small increments:
+1. Load a dataset, select a drill and modification, and verify the plan preview.
+2. Delete a used modification, cancel, then reassign it and verify that a valid selected plan option is preserved.
+3. Edit and export JSON, checking the downloaded content.
+4. Smoke-check the editor at a mobile-sized viewport.
 
-1. **Complete:** Add modification management: create, edit, and delete reusable modifications and their options, assign them to drills, and keep IDs and references valid.
+Run against the local app first. Add CI and additional browsers only if the initial suite proves useful. Viewport emulation can catch layout issues, but does not replace checking on a real iPhone or Android device.
 
-When deleting an in-use label, stage, or modification, warn with the reference count and a short sample when the list is long. Let the trainer cancel or reassign references before deletion. For modifications, reassignment may also require mapping selected options. Keep the selected plan in memory where possible, but clear entries that are no longer valid; do not add plan or edit persistence.
+### 2. Refactor the training-data editor
 
-Validate the complete working copy before export. Preserve optional fields, including `diagram`, through every edit and export so a future diagram feature can use them without requiring the editor to understand diagrams yet.
+Before adding more editing features, reduce the size and coupling of the editor. The main pressure points are the combined navigation, drill editing, stage and label managers, and modification/option management in [`training-data-editor.ts`](./src/app/training-data-editor.ts) and its large template. The feature tests and app integration tests have also grown into large files.
 
-### 3. Design and add drill diagrams
+Refactor in small, behavior-preserving steps:
+
+1. Split the editor into a small hub/shell and focused screens or components for drills, stages, labels, and modifications. Keep the modification list/search and detail screen together initially; split them further only if their state grows.
+2. Keep validation centralized through `TrainingDataStore`. Let feature components own their local UI state and report successful edits to the shell rather than duplicating validation and error handling.
+3. Move modification-selection reconciliation and option mapping into a focused helper with independent tests. Preserve valid plan selections when possible and clear invalid ones.
+4. Split the large editor and app spec files by feature, leaving app-level tests for a smaller set of cross-feature flows.
+5. Revisit stylesheet boundaries after the component structure is clear. Editor styles currently live mostly in the global stylesheet; account for Angular style scoping when moving them.
+
+Use the Playwright smoke tests as a user-visible safety net while preserving the existing unit and integration coverage. Avoid a big-bang rewrite.
+
+### 3. Validate the real trainer workflow
+
+Use the app to create and share a few actual sessions. Record friction points and decide which optional features below would solve a real problem. Keep the current lightweight workflow if it is sufficient.
+
+### 4. Design and add drill diagrams
 
 The user has identified diagrams as a future feature, with fixed entries such as players and goals placed freely. Agree on the diagram format before implementing it.
 
@@ -69,11 +86,11 @@ Suggested sequence:
 
 Prefer normalized coordinates and known element types over arbitrary executable markup or unrestricted image URLs. Do not assume which elements or editing gestures are required; confirm them with the trainer.
 
-### 4. Consider session-plan refinements only when needed
+### 5. Consider session-plan refinements only when needed
 
 Possible additions include durations, a plan title/date, changing stage order, duplicating drills, or saving/restoring a draft. These are not part of the current pilot. Decide each independently; in particular, ask before adding browser persistence or changing the fixed-stage workflow.
 
-### 5. Improve data and release confidence
+### 6. Improve data and release confidence
 
 - Add a check that every preloaded dataset listed in the catalog exists and passes the same schema/reference validation used at runtime.
 - Keep focused tests for loading, replacement confirmation, editor operations, reference cleanup, WhatsApp formatting, localization, and JSON export.
