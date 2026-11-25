@@ -159,6 +159,15 @@ app-root .stage-manager-page {
   gap: 1rem;
 }
 
+app-root .editor-start-guidance {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border-left: 0.25rem solid #287348;
+  border-radius: 0.35rem;
+  background: #edf5ef;
+  line-height: 1.5;
+}
+
 app-root .editor-home-page > h3,
 app-root .editor-page-heading h3 {
   margin: 0;

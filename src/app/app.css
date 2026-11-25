@@ -18,6 +18,23 @@
   gap: 1.5rem;
 }
 
+.welcome {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+  max-width: 44rem;
+  margin: 4rem auto;
+  padding: 1.5rem;
+  border: 1px solid #dce5dc;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.welcome h2,
+.welcome p {
+  margin: 0;
+}
+
 .header-actions {
   display: flex;
   align-items: flex-end;
@@ -78,6 +95,15 @@
   .header-actions {
     align-items: stretch;
     flex-direction: column;
+    width: 100%;
+  }
+
+  .welcome {
+    margin: 2rem auto;
+    padding: 1rem;
+  }
+
+  .welcome .download-button {
     width: 100%;
   }
 

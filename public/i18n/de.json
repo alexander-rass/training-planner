@@ -48,6 +48,7 @@
     "heading": "Trainingsdaten bearbeiten",
     "description": "Änderungen bleiben auf dieser Seite, bis du die bearbeitete JSON-Datei herunterlädst. Beim Aktualisieren der Seite gehen sie verloren.",
     "chooseSection": "Was möchtest du bearbeiten?",
+    "stagesOptional": "Für einen Trainingsplan brauchst du Phasen und Übungen. Es ist naheliegend, mit den Phasen zu beginnen; du kannst aber auch zuerst Übungen erstellen und sie später Phasen zuordnen.",
     "drillsSection": "Übungen ({{count}})",
     "drillsSectionDescription": "Übungen suchen, filtern, erstellen und bearbeiten.",
     "stagesSection": "Phasen ({{count}})",
@@ -103,7 +104,6 @@
     "noDrills": "Noch keine Übungen. Füge eine Übung hinzu, um zu beginnen.",
     "noDrillMatches": "Keine Übung passt zu dieser Suche und den ausgewählten Filtern.",
     "noLabels": "Es sind noch keine Labels definiert.",
-    "noStageToCreate": "Füge zuerst eine Phase hinzu, bevor du eine Übung erstellst.",
     "selectDrill": "Wähle eine Übung zum Bearbeiten aus.",
     "search": "Titel, Beschreibungen, Coaching-Punkte und Labels durchsuchen",
     "filterByStage": "Nach Phase filtern",
@@ -166,7 +166,8 @@
     "empty": "Wähle mindestens eine Übung aus, um die Nachricht zu erstellen."
   },
   "welcome": {
-    "heading": "Lade deine Trainingsdaten, um zu beginnen",
-    "description": "Wähle die JSON-Datei mit deinen Phasen, Labels, Anpassungen und Übungen aus."
+    "heading": "Trainingsdaten laden oder neu beginnen",
+    "description": "Wähle eine JSON-Datei mit deinen Trainingsdaten aus oder erstelle einen leeren Datensatz. Neue Datensätze werden als separate JSON-Datei heruntergeladen; Änderungen werden nicht im Browser gespeichert.",
+    "createBlankDataset": "Leere Trainingsdaten erstellen"
   }
 }

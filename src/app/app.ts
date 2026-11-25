@@ -40,7 +40,7 @@ export class App {
     });
     effect(() => {
       this.dataSource.dataRevision();
-      this.isEditingData.set(false);
+      this.isEditingData.set(this.dataSource.isNewDataset());
       this.downloadError.set(null);
     });
   }

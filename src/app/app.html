@@ -143,6 +143,9 @@
     <section class="welcome">
       <h2>{{ 'welcome.heading' | translate }}</h2>
       <p>{{ 'welcome.description' | translate }}</p>
+      <button class="download-button" type="button" (click)="dataSource.createBlankDataset()">
+        {{ 'welcome.createBlankDataset' | translate }}
+      </button>
     </section>
   }
 </main>

@@ -21,20 +21,12 @@
     @if (editorSection() === 'home') {
       <section class="editor-home-page" aria-labelledby="editor-home-heading">
         <h3 id="editor-home-heading">{{ 'editor.chooseSection' | translate }}</h3>
+        @if (stages().length === 0) {
+          <p class="editor-start-guidance" role="note">
+            {{ 'editor.stagesOptional' | translate }}
+          </p>
+        }
         <div class="editor-section-grid">
-          <button
-            class="editor-section-card drills-section-card"
-            type="button"
-            [disabled]="isLoading"
-            (click)="openEditorSection('drills')"
-          >
-            <span class="editor-section-card-title">
-              {{ 'editor.drillsSection' | translate: { count: data.drills.length } }}
-            </span>
-            <span class="editor-section-card-description">
-              {{ 'editor.drillsSectionDescription' | translate }}
-            </span>
-          </button>
           <button
             class="editor-section-card stages-section-card"
             type="button"
@@ -46,6 +38,19 @@
             </span>
             <span class="editor-section-card-description">
               {{ 'editor.stagesSectionDescription' | translate }}
+            </span>
+          </button>
+          <button
+            class="editor-section-card drills-section-card"
+            type="button"
+            [disabled]="isLoading"
+            (click)="openEditorSection('drills')"
+          >
+            <span class="editor-section-card-title">
+              {{ 'editor.drillsSection' | translate: { count: data.drills.length } }}
+            </span>
+            <span class="editor-section-card-description">
+              {{ 'editor.drillsSectionDescription' | translate }}
             </span>
           </button>
         </div>
@@ -308,17 +313,9 @@
           </div>
 
           <div class="editor-actions">
-            <button
-              class="copy-button"
-              type="button"
-              [disabled]="stages().length === 0 || isLoading"
-              (click)="addDrill()"
-            >
+            <button class="copy-button" type="button" [disabled]="isLoading" (click)="addDrill()">
               {{ 'editor.addDrill' | translate }}
             </button>
-            @if (stages().length === 0) {
-              <p class="editor-hint">{{ 'editor.noStageToCreate' | translate }}</p>
-            }
           </div>
 
           <div class="editor-browser">

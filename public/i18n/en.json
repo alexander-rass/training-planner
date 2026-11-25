@@ -48,6 +48,7 @@
     "heading": "Edit training data",
     "description": "Changes stay in this page until you download the edited JSON. Refreshing the page clears them.",
     "chooseSection": "What would you like to edit?",
+    "stagesOptional": "A training plan needs stages and drills. Starting with stages is natural, but you can create drills first and assign them later.",
     "drillsSection": "Drills ({{count}})",
     "drillsSectionDescription": "Search, filter, create, and edit drills.",
     "stagesSection": "Stages ({{count}})",
@@ -103,7 +104,6 @@
     "noDrills": "No drills yet. Add one to get started.",
     "noDrillMatches": "No drills match these search and filter settings.",
     "noLabels": "No labels are defined yet.",
-    "noStageToCreate": "Add a stage before creating a drill.",
     "selectDrill": "Choose a drill to edit.",
     "search": "Search titles, descriptions, coaching points, and labels",
     "filterByStage": "Filter by stage",
@@ -166,7 +166,8 @@
     "empty": "Select at least one drill to generate the message."
   },
   "welcome": {
-    "heading": "Load your training data to begin",
-    "description": "Select the JSON file containing your stages, labels, modifications, and drills."
+    "heading": "Load training data or start from scratch",
+    "description": "Select a JSON file with your training data, or create an empty dataset. New datasets are downloaded as a separate JSON file; changes are not saved in the browser.",
+    "createBlankDataset": "Create empty training data"
   }
 }

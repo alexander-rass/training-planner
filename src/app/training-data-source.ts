@@ -13,6 +13,7 @@ import { TranslationMessage } from './translation-message';
 
 @Injectable({ providedIn: 'root' })
 export class TrainingDataSource {
+  private static readonly newDatasetFileName = 'new-training-data.json';
   private readonly http = inject(HttpClient);
   private readonly translate = inject(TranslateService);
   private readonly trainingDataStore = inject(TrainingDataStore);
@@ -23,12 +24,35 @@ export class TrainingDataSource {
   readonly availableDatasets = signal<TrainingDatasetDefinition[]>([]);
   readonly isDatasetCatalogLoading = signal(true);
   readonly selectedDatasetId = signal('');
+  readonly isNewDataset = signal(false);
   readonly loadError = signal<TranslationMessage | null>(null);
   readonly datasetCatalogError = signal<TranslationMessage | null>(null);
   readonly dataRevision = signal(0);
 
   constructor() {
     this.loadDatasetCatalog();
+  }
+
+  createBlankDataset(): void {
+    if (this.trainingDataStore.trainingData()) {
+      throw new Error('Cannot create a blank dataset while training data is already loaded.');
+    }
+
+    const contents = JSON.stringify(
+      {
+        schemaVersion: 1,
+        catalog: {
+          stages: [],
+          labels: [],
+          mainFilterLabelIds: [],
+          modifications: [],
+        },
+        drills: [],
+      },
+      null,
+      2,
+    );
+    this.applyTrainingData(contents, TrainingDataSource.newDatasetFileName, null, true);
   }
 
   async onDatasetSelected(event: Event): Promise<void> {
@@ -161,7 +185,12 @@ export class TrainingDataSource {
     return typeof window === 'undefined' || window.confirm(message);
   }
 
-  private applyTrainingData(contents: string, fileName: string, datasetId: string | null): void {
+  private applyTrainingData(
+    contents: string,
+    fileName: string,
+    datasetId: string | null,
+    isNewDataset = false,
+  ): void {
     try {
       this.trainingDataStore.load(contents);
     } catch (error) {
@@ -183,6 +212,7 @@ export class TrainingDataSource {
     this.loadedFileName.set(fileName);
     this.selectedLocalFileName.set(datasetId === null ? fileName : null);
     this.selectedDatasetId.set(datasetId ?? '');
+    this.isNewDataset.set(isNewDataset);
     this.loadError.set(null);
     this.dataRevision.update((revision) => revision + 1);
   }

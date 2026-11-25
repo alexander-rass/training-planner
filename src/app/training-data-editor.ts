@@ -322,7 +322,7 @@ export class TrainingDataEditor implements OnChanges {
   protected addDrill(): void {
     const data = this.trainingData();
     const firstStage = this.stages()[0];
-    if (!data || !firstStage) {
+    if (!data || this.isLoading) {
       return;
     }
 
@@ -342,7 +342,7 @@ export class TrainingDataEditor implements OnChanges {
     const drill: Drill = {
       id,
       title,
-      availableStageIds: [firstStage.id],
+      availableStageIds: firstStage ? [firstStage.id] : [],
       labelIds: [],
       descriptionMarkdown: '',
       modificationIds: [],

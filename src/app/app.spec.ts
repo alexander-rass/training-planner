@@ -10,6 +10,7 @@ import enTranslations from '../../public/i18n/en.json';
 import scaJg2020Data from '../../data/sca_jg2020_data.json';
 import { parseTrainingData } from './training-data';
 import { trainingDataJson, trainingDatasetCatalog } from './training-data-test-fixtures';
+import { TrainingDataStore } from './training-data-store';
 
 async function createAppFixture() {
   const fixture = TestBed.createComponent(App);
@@ -108,6 +109,101 @@ describe('App', () => {
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('input[type="file"]')?.getAttribute('accept')).toContain('.json');
+  });
+
+  it('creates drills before stages and exports the new dataset under a new filename', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('.welcome')).not.toBeNull();
+    (compiled.querySelector('.welcome button') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('.welcome')).toBeNull();
+    expect(compiled.querySelector('.data-editor')?.hasAttribute('hidden')).toBe(false);
+    expect(compiled.querySelector('.editor-start-guidance')?.textContent).toContain(
+      'Für einen Trainingsplan brauchst du Phasen und Übungen',
+    );
+    const initialData = TestBed.inject(TrainingDataStore).trainingData();
+    expect(initialData).toEqual({
+      schemaVersion: 1,
+      catalog: { stages: [], labels: [], mainFilterLabelIds: [], modifications: [] },
+      drills: [],
+    });
+
+    openEditorSection(fixture, 'drills');
+    const addDrillButton = compiled.querySelector(
+      '.editor-actions .copy-button',
+    ) as HTMLButtonElement;
+    expect(addDrillButton.disabled).toBe(false);
+    addDrillButton.click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('.editor-form')).not.toBeNull();
+    expect(TestBed.inject(TrainingDataStore).trainingData()?.drills[0]?.availableStageIds).toEqual(
+      [],
+    );
+    (
+      compiled.querySelector('.editor-page-navigation button:last-child') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    openEditorSection(fixture, 'stages');
+    (
+      compiled.querySelector('.stage-manager-page .stage-manager .copy-button') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.stage-editor-row')).toHaveLength(1);
+    (
+      compiled.querySelector('.stage-manager-page .editor-page-heading button') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    openEditorSection(fixture, 'drills');
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const stageCheckbox = compiled.querySelector(
+      '.editor-choice-group input[type="checkbox"]',
+    ) as HTMLInputElement;
+    expect(stageCheckbox.checked).toBe(false);
+    stageCheckbox.click();
+    fixture.detectChanges();
+    expect(TestBed.inject(TrainingDataStore).trainingData()?.drills[0]?.availableStageIds).toEqual([
+      'new-stage',
+    ]);
+
+    const createObjectUrl = vi.fn((_blob: Blob) => 'blob:new-training-data');
+    const revokeObjectUrl = vi.fn();
+    vi.stubGlobal('URL', {
+      createObjectURL: createObjectUrl,
+      revokeObjectURL: revokeObjectUrl,
+    });
+    let downloadedFileName = '';
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      downloadedFileName = this.download;
+    });
+    vi.useFakeTimers();
+
+    const exportButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Bearbeitete JSON exportieren'),
+    ) as HTMLButtonElement;
+    exportButton.click();
+    fixture.detectChanges();
+    vi.runOnlyPendingTimers();
+
+    expect(downloadedFileName).toBe('new-training-data-export.json');
+    const exportedBlob = createObjectUrl.mock.calls[0]?.[0];
+    expect(exportedBlob).toBeInstanceOf(Blob);
+    const exportedData = JSON.parse(await exportedBlob!.text()) as {
+      catalog: { stages: unknown[] };
+      drills: unknown[];
+    };
+    expect(exportedData.catalog.stages).toHaveLength(1);
+    expect(exportedData.drills).toHaveLength(1);
+    expect(compiled.querySelector('.unsaved-status')).toBeNull();
+    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:new-training-data');
   });
 
   it('edits a drill title in the working copy and keeps the selected plan drill', async () => {
