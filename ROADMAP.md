@@ -43,6 +43,16 @@ See [`README.md`](./README.md) for the current data format, local commands, and 
 
 ## Suggested roadmap
 
+### 0. Fix code-review reliability findings
+
+Address these small reliability issues before browser-test setup or refactoring:
+
+1. Bound stage drill counts to a practical maximum and validate the limit both when loading JSON and when editing counts. Protect plan initialization and reconciliation from unbounded slot allocation.
+2. Make export feedback reflect what the browser confirms. Do not clear the unsaved-changes state solely because the download link was clicked; if download completion cannot be confirmed, communicate that limitation clearly.
+3. Keep the selected local filename consistent with the active dataset after a failed load. Clear it or label it as selected-but-not-loaded while retaining the previously active dataset.
+
+Add focused tests for the count limit and for the load/export status transitions.
+
 ### 1. Add Playwright smoke tests
 
 Add a small browser-level suite using Playwright. The current Angular/Vitest tests exercise components and app integration in jsdom, but do not launch a real browser. There is no browser-test setup or CI workflow yet.
