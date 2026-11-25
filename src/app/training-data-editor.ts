@@ -10,11 +10,17 @@ import {
 } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { MarkdownDescriptionEditor } from './markdown-description-editor';
-import { Drill, StageDefinition, TrainingData, TrainingDataValidationError } from './training-data';
+import {
+  Drill,
+  LabelDefinition,
+  StageDefinition,
+  TrainingData,
+  TrainingDataValidationError,
+} from './training-data';
 import { TrainingDataStore } from './training-data-store';
 import { TranslationMessage } from './translation-message';
 
-type EditorSection = 'home' | 'drills' | 'stages';
+type EditorSection = 'home' | 'drills' | 'stages' | 'labels';
 
 @Component({
   selector: 'app-training-data-editor',
@@ -40,6 +46,8 @@ export class TrainingDataEditor implements OnChanges {
   protected readonly editorError = signal<TranslationMessage | null>(null);
   protected readonly pendingStageDeletionId = signal<string | null>(null);
   protected readonly stageReassignmentId = signal('');
+  protected readonly pendingLabelDeletionId = signal<string | null>(null);
+  protected readonly labelReassignmentId = signal('');
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['resetToken']) {
@@ -50,10 +58,12 @@ export class TrainingDataEditor implements OnChanges {
       this.editorLabelFilterId.set('');
       this.editorError.set(null);
       this.cancelStageDeletion();
+      this.cancelLabelDeletion();
     } else if (changes['isEditing'] && !this.isEditing) {
       this.editorSection.set('home');
       this.selectedEditorDrillId.set(null);
       this.cancelStageDeletion();
+      this.cancelLabelDeletion();
     }
   }
 
@@ -146,12 +156,165 @@ export class TrainingDataEditor implements OnChanges {
     if (section !== 'stages') {
       this.cancelStageDeletion();
     }
+    if (section !== 'labels') {
+      this.cancelLabelDeletion();
+    }
   }
 
   protected returnToEditorHome(): void {
     this.editorSection.set('home');
     this.selectedEditorDrillId.set(null);
     this.cancelStageDeletion();
+    this.cancelLabelDeletion();
+  }
+
+  protected addLabel(): void {
+    const data = this.trainingData();
+    if (!data || this.isLoading) {
+      return;
+    }
+
+    const label = this.translate.instant('editor.newLabel');
+    if (typeof label !== 'string') {
+      throw new Error('The new label must be a string.');
+    }
+
+    const existingIds = new Set(data.catalog.labels.map((candidate) => candidate.id));
+    let id = 'new-label';
+    let suffix = 2;
+    while (existingIds.has(id)) {
+      id = `new-label-${suffix}`;
+      suffix += 1;
+    }
+
+    this.applyTrainingDataChange((current) => ({
+      ...current,
+      catalog: {
+        ...current.catalog,
+        labels: [...current.catalog.labels, { id, label }],
+      },
+    }));
+  }
+
+  protected onLabelNameChanged(label: LabelDefinition, event: Event): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+    if (input.value.trim().length === 0) {
+      input.value = label.label;
+      this.editorError.set({ key: 'editor.labelNameRequired' });
+      return;
+    }
+    if (
+      !this.applyTrainingDataChange((data) => ({
+        ...data,
+        catalog: {
+          ...data.catalog,
+          labels: data.catalog.labels.map((candidate) =>
+            candidate.id === label.id ? { ...candidate, label: input.value } : candidate,
+          ),
+        },
+      }))
+    ) {
+      input.value = label.label;
+    }
+  }
+
+  protected onMainFilterLabelToggled(label: LabelDefinition, event: Event): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+
+    this.applyTrainingDataChange((data) => ({
+      ...data,
+      catalog: {
+        ...data.catalog,
+        mainFilterLabelIds: input.checked
+          ? data.catalog.mainFilterLabelIds.includes(label.id)
+            ? data.catalog.mainFilterLabelIds
+            : [...data.catalog.mainFilterLabelIds, label.id]
+          : data.catalog.mainFilterLabelIds.filter((id) => id !== label.id),
+      },
+    }));
+  }
+
+  protected drillsUsingLabel(labelId: string): Drill[] {
+    return this.trainingData()?.drills.filter((drill) => drill.labelIds.includes(labelId)) ?? [];
+  }
+
+  protected requestDeleteLabel(label: LabelDefinition): void {
+    if (this.isLoading) {
+      return;
+    }
+    this.editorError.set(null);
+    this.pendingLabelDeletionId.set(label.id);
+    this.labelReassignmentId.set('');
+  }
+
+  protected onLabelReassignmentChanged(event: Event): void {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const labelId = this.pendingLabelDeletionId();
+    const validTarget =
+      !select.value ||
+      this.trainingData()?.catalog.labels.some(
+        (label) => label.id === select.value && label.id !== labelId,
+      );
+    if (validTarget) {
+      this.labelReassignmentId.set(select.value);
+    } else {
+      select.value = this.labelReassignmentId();
+    }
+  }
+
+  protected cancelLabelDeletion(): void {
+    this.pendingLabelDeletionId.set(null);
+    this.labelReassignmentId.set('');
+  }
+
+  protected confirmDeleteLabel(label: LabelDefinition): void {
+    if (this.pendingLabelDeletionId() !== label.id || this.isLoading) {
+      return;
+    }
+
+    const targetLabelId = this.labelReassignmentId();
+    const remainingLabels = this.trainingData()?.catalog.labels.filter(
+      (candidate) => candidate.id !== label.id,
+    );
+    if (targetLabelId && !remainingLabels?.some((candidate) => candidate.id === targetLabelId)) {
+      this.editorError.set({ key: 'editor.labelReassignmentUnavailable' });
+      return;
+    }
+
+    const applied = this.applyTrainingDataChange((data) => ({
+      ...data,
+      catalog: {
+        ...data.catalog,
+        labels: data.catalog.labels.filter((candidate) => candidate.id !== label.id),
+        mainFilterLabelIds: this.replaceReferenceId(
+          data.catalog.mainFilterLabelIds,
+          label.id,
+          targetLabelId,
+        ),
+      },
+      drills: data.drills.map((drill) => ({
+        ...drill,
+        labelIds: this.replaceReferenceId(drill.labelIds, label.id, targetLabelId),
+      })),
+    }));
+    if (!applied) {
+      return;
+    }
+
+    if (this.editorLabelFilterId() === label.id) {
+      this.editorLabelFilterId.set(targetLabelId);
+    }
+    this.cancelLabelDeletion();
   }
 
   protected addStage(): void {
@@ -533,6 +696,17 @@ export class TrainingDataEditor implements OnChanges {
         stages: data.catalog.stages.map((stage) => (stage.id === stageId ? update(stage) : stage)),
       },
     }));
+  }
+
+  private replaceReferenceId(ids: string[], removedId: string, replacementId: string): string[] {
+    const updatedIds: string[] = [];
+    for (const id of ids) {
+      const updatedId = id === removedId ? replacementId : id;
+      if (updatedId && !updatedIds.includes(updatedId)) {
+        updatedIds.push(updatedId);
+      }
+    }
+    return updatedIds;
   }
 
   private applyTrainingDataChange(update: (data: TrainingData) => TrainingData): boolean {

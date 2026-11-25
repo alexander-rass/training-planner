@@ -22,7 +22,10 @@ async function createAppFixture() {
   return fixture;
 }
 
-function openEditorSection(fixture: ComponentFixture<App>, section: 'drills' | 'stages'): void {
+function openEditorSection(
+  fixture: ComponentFixture<App>,
+  section: 'drills' | 'stages' | 'labels',
+): void {
   const compiled = fixture.nativeElement as HTMLElement;
   const sectionButton = compiled.querySelector(
     `.editor-section-card.${section}-section-card`,
@@ -204,6 +207,44 @@ describe('App', () => {
     expect(exportedData.drills).toHaveLength(1);
     expect(compiled.querySelector('.unsaved-status')).toBeNull();
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:new-training-data');
+  });
+
+  it('lets the label editor add a main filter that filters planner drills', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = { name: 'pilot-data.json', text: async () => trainingDataJson };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [file] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const editButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    editButton.click();
+    fixture.detectChanges();
+    openEditorSection(fixture, 'labels');
+
+    const u11Row = compiled.querySelector('.label-editor-row[aria-label="U11"]') as HTMLElement;
+    (u11Row.querySelector('input[type="checkbox"]') as HTMLInputElement).click();
+    fixture.detectChanges();
+
+    const returnButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Zurück zum Planer'),
+    ) as HTMLButtonElement;
+    returnButton.click();
+    fixture.detectChanges();
+
+    const u11Filter = [...compiled.querySelectorAll('.filter-list .filter-chip')].find((button) =>
+      button.textContent?.includes('U11'),
+    ) as HTMLButtonElement;
+    expect(u11Filter).toBeTruthy();
+    u11Filter.click();
+    fixture.detectChanges();
+    const drillSelect = compiled.querySelector('.slot .select-control select') as HTMLSelectElement;
+    expect([...drillSelect.options].map((option) => option.value)).toContain('drill-001');
+    expect([...drillSelect.options].map((option) => option.value)).not.toContain('drill-002');
   });
 
   it('edits a drill title and coaching point while keeping the selected plan drill', async () => {

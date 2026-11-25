@@ -53,6 +53,19 @@
               {{ 'editor.drillsSectionDescription' | translate }}
             </span>
           </button>
+          <button
+            class="editor-section-card labels-section-card"
+            type="button"
+            [disabled]="isLoading"
+            (click)="openEditorSection('labels')"
+          >
+            <span class="editor-section-card-title">
+              {{ 'editor.labelsSection' | translate: { count: data.catalog.labels.length } }}
+            </span>
+            <span class="editor-section-card-description">
+              {{ 'editor.labelsSectionDescription' | translate }}
+            </span>
+          </button>
         </div>
       </section>
     } @else if (editorSection() === 'stages') {
@@ -210,6 +223,148 @@
               </section>
             } @empty {
               <p class="editor-hint">{{ 'editor.noStages' | translate }}</p>
+            }
+          </div>
+        </div>
+      </section>
+    } @else if (editorSection() === 'labels') {
+      <section class="label-manager-page" aria-labelledby="label-manager-heading">
+        <div class="editor-page-heading">
+          <button class="text-button" type="button" (click)="returnToEditorHome()">
+            {{ 'editor.backToOptions' | translate }}
+          </button>
+          <h3 id="label-manager-heading">{{ 'editor.labelManagementHeading' | translate }}</h3>
+        </div>
+        <div class="label-manager">
+          <div class="editor-results-heading">
+            <p>{{ 'editor.labelManagerDescription' | translate }}</p>
+            <button class="copy-button" type="button" [disabled]="isLoading" (click)="addLabel()">
+              {{ 'editor.addLabel' | translate }}
+            </button>
+          </div>
+
+          <div class="label-editor-list">
+            @for (label of data.catalog.labels; track label.id) {
+              <section class="label-editor-row" [attr.aria-label]="label.label">
+                <div class="label-editor-fields">
+                  <label class="editor-field">
+                    <span>{{ 'editor.labelName' | translate }}</span>
+                    <input
+                      type="text"
+                      required
+                      [disabled]="isLoading"
+                      [value]="label.label"
+                      (change)="onLabelNameChanged(label, $event)"
+                    />
+                  </label>
+                  <label class="editor-checkbox main-filter-label">
+                    <input
+                      type="checkbox"
+                      [disabled]="isLoading"
+                      [checked]="data.catalog.mainFilterLabelIds.includes(label.id)"
+                      (change)="onMainFilterLabelToggled(label, $event)"
+                    />
+                    <span>{{ 'editor.mainFilterLabel' | translate }}</span>
+                  </label>
+                  <button
+                    class="text-button delete-button"
+                    type="button"
+                    [disabled]="isLoading"
+                    (click)="requestDeleteLabel(label)"
+                  >
+                    {{ 'editor.deleteLabel' | translate }}
+                  </button>
+                </div>
+
+                @if (pendingLabelDeletionId() === label.id) {
+                  <div
+                    class="label-delete-panel"
+                    role="group"
+                    [attr.aria-label]="'editor.deleteLabel' | translate"
+                  >
+                    @if (drillsUsingLabel(label.id).length > 4) {
+                      <p class="message error" role="alert">
+                        {{
+                          'editor.labelUsedMany'
+                            | translate
+                              : { label: label.label, count: drillsUsingLabel(label.id).length }
+                        }}
+                      </p>
+                      <ul>
+                        @for (drill of drillsUsingLabel(label.id).slice(0, 2); track drill.id) {
+                          <li>{{ drill.title }}</li>
+                        }
+                      </ul>
+                    } @else if (drillsUsingLabel(label.id).length > 0) {
+                      <p class="message error" role="alert">
+                        {{
+                          'editor.labelUsed'
+                            | translate
+                              : { label: label.label, count: drillsUsingLabel(label.id).length }
+                        }}
+                      </p>
+                      <ul>
+                        @for (drill of drillsUsingLabel(label.id); track drill.id) {
+                          <li>{{ drill.title }}</li>
+                        }
+                      </ul>
+                    } @else if (!data.catalog.mainFilterLabelIds.includes(label.id)) {
+                      <p>{{ 'editor.labelUnused' | translate }}</p>
+                    }
+
+                    @if (data.catalog.mainFilterLabelIds.includes(label.id)) {
+                      <p class="message error" role="alert">
+                        {{ 'editor.labelMainFilterUsed' | translate: { label: label.label } }}
+                      </p>
+                    }
+
+                    @if (
+                      drillsUsingLabel(label.id).length > 0 ||
+                      data.catalog.mainFilterLabelIds.includes(label.id)
+                    ) {
+                      <label class="select-control">
+                        <span>{{ 'editor.reassignLabelReferences' | translate }}</span>
+                        <select (change)="onLabelReassignmentChanged($event)">
+                          <option value="" [selected]="!labelReassignmentId()">
+                            {{ 'editor.removeLabelReferences' | translate }}
+                          </option>
+                          @for (targetLabel of data.catalog.labels; track targetLabel.id) {
+                            @if (targetLabel.id !== label.id) {
+                              <option
+                                [value]="targetLabel.id"
+                                [selected]="targetLabel.id === labelReassignmentId()"
+                              >
+                                {{ targetLabel.label }}
+                              </option>
+                            }
+                          }
+                        </select>
+                      </label>
+                    }
+                    <p class="editor-hint">{{ 'editor.deletedLabelNotice' | translate }}</p>
+                    <div class="label-delete-actions">
+                      <button
+                        class="text-button"
+                        type="button"
+                        [disabled]="isLoading"
+                        (click)="cancelLabelDeletion()"
+                      >
+                        {{ 'editor.cancelLabelDeletion' | translate }}
+                      </button>
+                      <button
+                        class="text-button delete-button"
+                        type="button"
+                        [disabled]="isLoading"
+                        (click)="confirmDeleteLabel(label)"
+                      >
+                        {{ 'editor.confirmDeleteLabel' | translate }}
+                      </button>
+                    </div>
+                  </div>
+                }
+              </section>
+            } @empty {
+              <p class="editor-hint">{{ 'editor.noLabels' | translate }}</p>
             }
           </div>
         </div>

@@ -33,7 +33,7 @@ describe('TrainingDataEditor', () => {
 
   function openEditorSection(
     fixture: ComponentFixture<TrainingDataEditor>,
-    section: 'drills' | 'stages',
+    section: 'drills' | 'stages' | 'labels',
   ) {
     const compiled = fixture.nativeElement as HTMLElement;
     (compiled.querySelector(`.${section}-section-card`) as HTMLButtonElement).click();
@@ -44,7 +44,7 @@ describe('TrainingDataEditor', () => {
     const fixture = createEditorFixture();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.querySelectorAll('.editor-section-card')).toHaveLength(2);
+    expect(compiled.querySelectorAll('.editor-section-card')).toHaveLength(3);
     expect(compiled.querySelector('.stage-manager-page')).toBeNull();
     expect(compiled.querySelector('.editor-browser-page')).toBeNull();
 
@@ -53,6 +53,14 @@ describe('TrainingDataEditor', () => {
     expect(compiled.querySelector('.editor-browser-page')).toBeNull();
     (
       compiled.querySelector('.stage-manager-page .editor-page-heading button') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    openEditorSection(fixture, 'labels');
+    expect(compiled.querySelector('.label-manager-page')).not.toBeNull();
+    expect(compiled.querySelector('.stage-manager-page')).toBeNull();
+    (
+      compiled.querySelector('.label-manager-page .editor-page-heading button') as HTMLButtonElement
     ).click();
     fixture.detectChanges();
 
@@ -65,8 +73,166 @@ describe('TrainingDataEditor', () => {
       compiled.querySelector('.editor-page-navigation button:last-child') as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    expect(compiled.querySelectorAll('.editor-section-card')).toHaveLength(2);
+    expect(compiled.querySelectorAll('.editor-section-card')).toHaveLength(3);
     expect(compiled.querySelector('.editor-form')).toBeNull();
+  });
+
+  it('creates, renames, and manages main-filter labels', () => {
+    const fixture = createEditorFixture();
+    openEditorSection(fixture, 'labels');
+    const compiled = fixture.nativeElement as HTMLElement;
+    const store = TestBed.inject(TrainingDataStore);
+
+    (compiled.querySelector('.label-manager .copy-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(store.trainingData()?.catalog.labels).toHaveLength(3);
+
+    const newLabelRow = compiled.querySelector(
+      '.label-editor-row[aria-label="Neues Label"]',
+    ) as HTMLElement;
+    const nameInput = newLabelRow.querySelector('input[type="text"]') as HTMLInputElement;
+    nameInput.value = 'Finishing';
+    nameInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(
+      store.trainingData()?.catalog.labels.find((label) => label.id === 'new-label')?.label,
+    ).toBe('Finishing');
+
+    const updatedLabelRow = compiled.querySelector(
+      '.label-editor-row[aria-label="Finishing"]',
+    ) as HTMLElement;
+    const mainFilterCheckbox = updatedLabelRow.querySelector(
+      'input[type="checkbox"]',
+    ) as HTMLInputElement;
+    mainFilterCheckbox.click();
+    fixture.detectChanges();
+    expect(store.trainingData()?.catalog.mainFilterLabelIds).toContain('new-label');
+    mainFilterCheckbox.click();
+    fixture.detectChanges();
+    expect(store.trainingData()?.catalog.mainFilterLabelIds).not.toContain('new-label');
+
+    nameInput.value = '  ';
+    nameInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(nameInput.value).toBe('Finishing');
+    expect(compiled.querySelector('.data-editor .message.error')?.textContent).toContain(
+      'darf nicht leer sein',
+    );
+
+    (
+      compiled.querySelector(
+        '.label-editor-row[aria-label="Finishing"] .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('.label-delete-panel')?.textContent).toContain(
+      'keiner Übung und keinem Hauptfilter zugeordnet',
+    );
+    expect(compiled.querySelector('.label-delete-panel select')).toBeNull();
+    (compiled.querySelector('.label-delete-actions .delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(store.trainingData()?.catalog.labels.some((label) => label.id === 'new-label')).toBe(
+      false,
+    );
+  });
+
+  it('warns before deleting a used label and supports cancellation, reassignment, or removal', () => {
+    const fixture = createEditorFixture();
+    openEditorSection(fixture, 'labels');
+    const compiled = fixture.nativeElement as HTMLElement;
+    const store = TestBed.inject(TrainingDataStore);
+
+    (
+      compiled.querySelector(
+        '.label-editor-row[aria-label="Passing"] .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('.label-delete-panel [role="alert"]')?.textContent).toContain(
+      '2 Übungen',
+    );
+    expect(compiled.querySelectorAll('.label-delete-panel li')).toHaveLength(2);
+    expect(compiled.querySelectorAll('.label-delete-panel [role="alert"]')).toHaveLength(2);
+    expect(store.trainingData()?.catalog.labels.some((label) => label.id === 'passing')).toBe(true);
+
+    (compiled.querySelector('.label-delete-actions .text-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('.label-delete-panel')).toBeNull();
+    expect(store.trainingData()?.catalog.labels.some((label) => label.id === 'passing')).toBe(true);
+
+    (
+      compiled.querySelector(
+        '.label-editor-row[aria-label="Passing"] .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    const reassignment = compiled.querySelector('.label-delete-panel select') as HTMLSelectElement;
+    reassignment.value = 'u11';
+    reassignment.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    (compiled.querySelector('.label-delete-actions .delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const data = store.trainingData();
+    expect(data?.catalog.labels.map((label) => label.id)).toEqual(['u11']);
+    expect(data?.catalog.mainFilterLabelIds).toEqual(['u11']);
+    expect(data?.drills.map((drill) => drill.labelIds)).toEqual([['u11'], ['u11']]);
+    expect(compiled.querySelector('.label-delete-panel')).toBeNull();
+
+    (
+      compiled.querySelector(
+        '.label-editor-row[aria-label="U11"] .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect((compiled.querySelector('.label-delete-panel select') as HTMLSelectElement).value).toBe(
+      '',
+    );
+    (compiled.querySelector('.label-delete-actions .delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(store.trainingData()?.catalog.labels).toEqual([]);
+    expect(store.trainingData()?.catalog.mainFilterLabelIds).toEqual([]);
+    expect(store.trainingData()?.drills.map((drill) => drill.labelIds)).toEqual([[], []]);
+  });
+
+  it('shows only two drill examples when many drills use a label', () => {
+    const fixture = createEditorFixture();
+    openEditorSection(fixture, 'labels');
+    const compiled = fixture.nativeElement as HTMLElement;
+    const store = TestBed.inject(TrainingDataStore);
+    const data = store.trainingData();
+    if (!data?.drills[0]) {
+      throw new Error('The test training data must contain a drill.');
+    }
+
+    const firstDrill = data.drills[0];
+    const error = store.applyChange((current) => ({
+      ...current,
+      drills: [
+        ...current.drills,
+        ...Array.from({ length: 3 }, (_, index) => ({
+          ...firstDrill,
+          id: `label-extra-drill-${index + 1}`,
+          title: `Label extra drill ${index + 1}`,
+        })),
+      ],
+    }));
+    expect(error).toBeNull();
+    fixture.detectChanges();
+
+    (
+      compiled.querySelector(
+        '.label-editor-row[aria-label="Passing"] .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('.label-delete-panel [role="alert"]')?.textContent).toContain(
+      '5 Übungen',
+    );
+    expect(compiled.querySelectorAll('.label-delete-panel li')).toHaveLength(2);
+    expect(compiled.querySelector('.label-delete-panel')?.textContent).not.toContain(
+      'Label extra drill 1',
+    );
   });
 
   it('searches and filters drills while preserving filters when returning from drill details', () => {

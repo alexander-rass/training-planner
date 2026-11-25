@@ -154,7 +154,8 @@ app-root .editor-actions {
 }
 
 app-root .editor-home-page,
-app-root .stage-manager-page {
+app-root .stage-manager-page,
+app-root .label-manager-page {
   display: grid;
   gap: 1rem;
 }
@@ -175,7 +176,7 @@ app-root .editor-page-heading h3 {
 
 app-root .editor-section-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
   gap: 1rem;
 }
 
@@ -227,25 +228,30 @@ app-root .editor-page-heading {
   justify-content: space-between;
 }
 
-app-root .stage-manager {
+app-root .stage-manager,
+app-root .label-manager {
   display: grid;
   gap: 1rem;
 }
 
-app-root .stage-manager > .editor-results-heading {
+app-root .stage-manager > .editor-results-heading,
+app-root .label-manager > .editor-results-heading {
   align-items: center;
 }
 
-app-root .stage-manager > .editor-results-heading p {
+app-root .stage-manager > .editor-results-heading p,
+app-root .label-manager > .editor-results-heading p {
   line-height: 1.5;
 }
 
-app-root .stage-editor-list {
+app-root .stage-editor-list,
+app-root .label-editor-list {
   display: grid;
   gap: 0.75rem;
 }
 
-app-root .stage-editor-row {
+app-root .stage-editor-row,
+app-root .label-editor-row {
   display: grid;
   gap: 0.75rem;
   min-width: 0;
@@ -255,10 +261,20 @@ app-root .stage-editor-row {
   background: #fff;
 }
 
-app-root .stage-editor-fields {
+app-root .stage-editor-fields,
+app-root .label-editor-fields {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(8rem, 1fr);
   gap: 0.75rem;
+}
+
+app-root .label-editor-fields {
+  grid-template-columns: minmax(0, 2fr) minmax(10rem, 1fr) auto;
+  align-items: end;
+}
+
+app-root .main-filter-label {
+  min-height: 2.7rem;
 }
 
 app-root .stage-order-controls {
@@ -279,7 +295,8 @@ app-root .stage-order-controls button:disabled {
   opacity: 0.6;
 }
 
-app-root .stage-delete-panel {
+app-root .stage-delete-panel,
+app-root .label-delete-panel {
   display: grid;
   gap: 0.75rem;
   padding: 0.9rem;
@@ -288,7 +305,8 @@ app-root .stage-delete-panel {
   background: #fff8f6;
 }
 
-app-root .stage-delete-panel .message {
+app-root .stage-delete-panel .message,
+app-root .label-delete-panel .message {
   margin: 0;
   padding: 0;
   border: 0;
@@ -296,12 +314,14 @@ app-root .stage-delete-panel .message {
   font-weight: 700;
 }
 
-app-root .stage-delete-panel ul {
+app-root .stage-delete-panel ul,
+app-root .label-delete-panel ul {
   margin: 0;
   padding-left: 1.4rem;
 }
 
-app-root .stage-delete-actions {
+app-root .stage-delete-actions,
+app-root .label-delete-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -596,6 +616,14 @@ app-root .delete-button {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  app-root .label-editor-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  app-root .main-filter-label {
+    min-height: 2.5rem;
+  }
+
   app-root .editor-coaching-point {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -607,6 +635,7 @@ app-root .delete-button {
   app-root .editor-actions,
   app-root .editor-form-heading,
   app-root .stage-manager > .editor-results-heading,
+  app-root .label-manager > .editor-results-heading,
   app-root .editor-page-heading {
     align-items: flex-start;
     flex-direction: column;
