@@ -33,10 +33,18 @@ describe('TrainingDataEditor', () => {
 
   function openEditorSection(
     fixture: ComponentFixture<TrainingDataEditor>,
-    section: 'drills' | 'stages' | 'labels',
+    section: 'drills' | 'stages' | 'labels' | 'modifications',
   ) {
     const compiled = fixture.nativeElement as HTMLElement;
     (compiled.querySelector(`.${section}-section-card`) as HTMLButtonElement).click();
+    fixture.detectChanges();
+  }
+
+  function selectModification(fixture: ComponentFixture<TrainingDataEditor>, label: string): void {
+    const compiled = fixture.nativeElement as HTMLElement;
+    (
+      compiled.querySelector(`.modification-list-item[aria-label="${label}"]`) as HTMLButtonElement
+    ).click();
     fixture.detectChanges();
   }
 
@@ -44,7 +52,7 @@ describe('TrainingDataEditor', () => {
     const fixture = createEditorFixture();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.querySelectorAll('.editor-section-card')).toHaveLength(3);
+    expect(compiled.querySelectorAll('.editor-section-card')).toHaveLength(4);
     expect(compiled.querySelector('.stage-manager-page')).toBeNull();
     expect(compiled.querySelector('.editor-browser-page')).toBeNull();
 
@@ -64,6 +72,23 @@ describe('TrainingDataEditor', () => {
     ).click();
     fixture.detectChanges();
 
+    openEditorSection(fixture, 'modifications');
+    expect(compiled.querySelector('.modification-manager-page')).not.toBeNull();
+    expect(compiled.querySelector('.modification-detail-page')).toBeNull();
+    expect(compiled.querySelector('.modification-options')).toBeNull();
+    selectModification(fixture, 'Player selection');
+    expect(compiled.querySelector('.modification-detail-page')).not.toBeNull();
+    expect(compiled.querySelector('.modification-options')).not.toBeNull();
+    (compiled.querySelector('.modification-back-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('.modification-detail-page')).toBeNull();
+    (
+      compiled.querySelector(
+        '.modification-manager-page .editor-page-heading button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
     openEditorSection(fixture, 'drills');
     expect(compiled.querySelector('.editor-browser-page')).not.toBeNull();
     expect(compiled.querySelector('.stage-manager-page')).toBeNull();
@@ -73,8 +98,42 @@ describe('TrainingDataEditor', () => {
       compiled.querySelector('.editor-page-navigation button:last-child') as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    expect(compiled.querySelectorAll('.editor-section-card')).toHaveLength(3);
+    expect(compiled.querySelectorAll('.editor-section-card')).toHaveLength(4);
     expect(compiled.querySelector('.editor-form')).toBeNull();
+  });
+
+  it('searches modifications in the list and shows options only after selection', () => {
+    const fixture = createEditorFixture();
+    openEditorSection(fixture, 'modifications');
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelectorAll('.modification-list-item')).toHaveLength(1);
+    expect(compiled.querySelector('.modification-options')).toBeNull();
+
+    const search = compiled.querySelector(
+      '.modification-browser-controls input[type="search"]',
+    ) as HTMLInputElement;
+    search.value = 'selection';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.modification-list-item')).toHaveLength(1);
+
+    search.value = 'not found';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.modification-list-item')).toHaveLength(0);
+    expect(compiled.querySelector('.modification-list')?.textContent).toContain(
+      'Keine Anpassung passt zu dieser Suche',
+    );
+
+    search.value = '';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    selectModification(fixture, 'Player selection');
+    expect(
+      compiled.querySelector('.modification-editor-row[aria-label="Player selection"]'),
+    ).not.toBeNull();
+    expect(compiled.querySelectorAll('.modification-option-row')).toHaveLength(1);
   });
 
   it('creates, renames, and manages main-filter labels', () => {
@@ -232,6 +291,235 @@ describe('TrainingDataEditor', () => {
     expect(compiled.querySelectorAll('.label-delete-panel li')).toHaveLength(2);
     expect(compiled.querySelector('.label-delete-panel')?.textContent).not.toContain(
       'Label extra drill 1',
+    );
+  });
+
+  it('creates and edits modifications, options, and drill availability', () => {
+    const fixture = createEditorFixture();
+    openEditorSection(fixture, 'modifications');
+    const compiled = fixture.nativeElement as HTMLElement;
+    const store = TestBed.inject(TrainingDataStore);
+    let optionSelectionMapping: unknown;
+    fixture.componentInstance.dataChanged.subscribe((mapping) => {
+      if (mapping) {
+        optionSelectionMapping = mapping;
+      }
+    });
+
+    (compiled.querySelector('.modification-manager .copy-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    let modification = store
+      .trainingData()
+      ?.catalog.modifications.find((candidate) => candidate.id === 'new-modification');
+    expect(modification).toMatchObject({
+      label: 'Neue Anpassung',
+      type: 'single-select',
+      options: [{ id: 'new-option', label: 'Neue Option' }],
+    });
+
+    const nameInput = compiled.querySelector(
+      '.modification-editor-row[aria-label="Neue Anpassung"] .modification-editor-fields input',
+    ) as HTMLInputElement;
+    nameInput.value = 'Intensity';
+    nameInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    const row = compiled.querySelector(
+      '.modification-editor-row[aria-label="Intensity"]',
+    ) as HTMLElement;
+
+    (row.querySelector('.modification-options > button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(row.querySelectorAll('.modification-option-row')).toHaveLength(2);
+    const optionInputs = row.querySelectorAll('.modification-option-row input');
+    (optionInputs[1] as HTMLInputElement).value = 'Fast';
+    optionInputs[1]?.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    modification = store
+      .trainingData()
+      ?.catalog.modifications.find((candidate) => candidate.id === 'new-modification');
+    expect(modification?.options.map((option) => option.label)).toEqual(['Neue Option', 'Fast']);
+
+    const secondOptionRow = row.querySelectorAll('.modification-option-row')[1] as HTMLElement;
+    (secondOptionRow.querySelector('.delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const optionDeletePanel = row.querySelector('.modification-delete-panel') as HTMLElement;
+    const optionReassignment = optionDeletePanel.querySelector('select') as HTMLSelectElement;
+    optionReassignment.value = 'new-option';
+    optionReassignment.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    (
+      optionDeletePanel.querySelector(
+        '.modification-delete-actions .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(
+      store
+        .trainingData()
+        ?.catalog.modifications.find((candidate) => candidate.id === 'new-modification')
+        ?.options.map((option) => option.id),
+    ).toEqual(['new-option']);
+    expect(optionSelectionMapping).toEqual({
+      'new-modification': {
+        targetModificationId: 'new-modification',
+        optionIds: { 'new-option-2': 'new-option' },
+      },
+    });
+
+    const availability = row.querySelectorAll('.modification-drill-list input');
+    expect((availability[0] as HTMLInputElement).checked).toBe(false);
+    (availability[0] as HTMLInputElement).click();
+    fixture.detectChanges();
+    expect(store.trainingData()?.drills[0]?.modificationIds).toContain('new-modification');
+    expect(store.trainingData()?.drills[1]?.modificationIds).not.toContain('new-modification');
+
+    nameInput.value = '  ';
+    nameInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(nameInput.value).toBe('Intensity');
+    expect(compiled.querySelector('.data-editor .message.error')?.textContent).toContain(
+      'darf nicht leer sein',
+    );
+  });
+
+  it('warns before deleting a used modification and supports option-mapped reassignment', () => {
+    const fixture = createEditorFixture();
+    openEditorSection(fixture, 'modifications');
+    const compiled = fixture.nativeElement as HTMLElement;
+    const store = TestBed.inject(TrainingDataStore);
+    let emittedMapping: unknown;
+    fixture.componentInstance.dataChanged.subscribe((mapping) => {
+      if (mapping) {
+        emittedMapping = mapping;
+      }
+    });
+
+    (compiled.querySelector('.modification-manager .copy-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (compiled.querySelector('.modification-back-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    selectModification(fixture, 'Player selection');
+    expect(
+      store.applyChange((current) => ({
+        ...current,
+        catalog: {
+          ...current.catalog,
+          modifications: current.catalog.modifications.map((modification) =>
+            modification.id === 'player-selection'
+              ? {
+                  ...modification,
+                  options: [
+                    ...modification.options,
+                    ...Array.from({ length: 4 }, (_, index) => ({
+                      id: `selection-${index + 1}`,
+                      label: `Selection ${index + 1}`,
+                    })),
+                  ],
+                }
+              : modification,
+          ),
+        },
+      })),
+    ).toBeNull();
+    fixture.detectChanges();
+    const sourceRow = compiled.querySelector(
+      '.modification-editor-row[aria-label="Player selection"]',
+    ) as HTMLElement;
+    (sourceRow.querySelector('.delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(
+      compiled.querySelector('.modification-delete-panel [role="alert"]')?.textContent,
+    ).toContain('1 Übungen');
+    expect(compiled.querySelector('.modification-delete-panel')?.textContent).toContain(
+      'Passing for U11',
+    );
+    const rowChildren = Array.from(sourceRow.children);
+    expect(rowChildren.indexOf(compiled.querySelector('.modification-delete-panel')!)).toBeLessThan(
+      rowChildren.indexOf(compiled.querySelector('.modification-options')!),
+    );
+    (
+      compiled.querySelector('.modification-delete-actions .text-button') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(
+      store.trainingData()?.catalog.modifications.some((item) => item.id === 'player-selection'),
+    ).toBe(true);
+
+    (
+      compiled.querySelector(
+        '.modification-editor-row[aria-label="Player selection"] .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    const deletePanel = compiled.querySelector('.modification-delete-panel') as HTMLElement;
+    const reassignment = deletePanel.querySelector('select') as HTMLSelectElement;
+    reassignment.value = 'new-modification';
+    reassignment.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    const optionMapping = deletePanel.querySelector(
+      '.modification-option-mappings select',
+    ) as HTMLSelectElement;
+    optionMapping.value = 'new-option';
+    optionMapping.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    (
+      deletePanel.querySelector('.modification-delete-actions .delete-button') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(store.trainingData()?.catalog.modifications.map((item) => item.id)).toEqual([
+      'new-modification',
+    ]);
+    expect(store.trainingData()?.drills[0]?.modificationIds).toEqual(['new-modification']);
+    expect(store.trainingData()?.drills[1]?.modificationIds).toEqual([]);
+    expect(emittedMapping).toEqual({
+      'player-selection': {
+        targetModificationId: 'new-modification',
+        optionIds: { line: 'new-option' },
+      },
+    });
+    expect(compiled.querySelector('.modification-delete-panel')).toBeNull();
+  });
+
+  it('shows a usage count and two examples when many drills use a modification', () => {
+    const fixture = createEditorFixture();
+    openEditorSection(fixture, 'modifications');
+    const compiled = fixture.nativeElement as HTMLElement;
+    const store = TestBed.inject(TrainingDataStore);
+    const firstDrill = store.trainingData()?.drills[0];
+    if (!firstDrill) {
+      throw new Error('The test training data must contain a drill.');
+    }
+
+    expect(
+      store.applyChange((current) => ({
+        ...current,
+        drills: [
+          ...current.drills,
+          ...Array.from({ length: 4 }, (_, index) => ({
+            ...firstDrill,
+            id: `modification-extra-drill-${index + 1}`,
+            title: `Extra drill ${index + 1}`,
+          })),
+        ],
+      })),
+    ).toBeNull();
+    fixture.detectChanges();
+    selectModification(fixture, 'Player selection');
+
+    (
+      compiled.querySelector(
+        '.modification-editor-row[aria-label="Player selection"] .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(
+      compiled.querySelector('.modification-delete-panel [role="alert"]')?.textContent,
+    ).toContain('5 Übungen');
+    expect(compiled.querySelectorAll('.modification-delete-panel li')).toHaveLength(2);
+    expect(compiled.querySelector('.modification-delete-panel')?.textContent).not.toContain(
+      'Extra drill 2',
     );
   });
 

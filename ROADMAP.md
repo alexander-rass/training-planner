@@ -16,8 +16,9 @@ Implemented:
 - Add/delete drills and edit their titles, available stages, and label assignments in an in-memory working copy.
 - Add, edit, reorder, and delete coaching points for each drill.
 - Manage labels: create, rename, and delete labels; assign them to drills; choose main-filter labels; and handle deletion of used labels with warnings, reassignment, or cancellation.
+- Manage reusable modifications: create and rename modifications and options, assign modifications to drills, and delete or reassign used modifications with option mapping. Valid selected-plan options are preserved where possible.
 - Manage stages: add and rename stages, change their order and default drill counts, and delete them with a usage warning and reassignment or unassignment.
-- Organize edit mode around a hub with dedicated Drills, Stages, and Labels areas; drill search, detail, and return navigation remain separate.
+- Organize edit mode around a hub with dedicated Drills, Stages, Labels, and Modifications areas. Modification editing uses a searchable list and a focused detail screen; drill search, detail, and return navigation remain separate.
 - Edit descriptions in a visual Markdown editor with bold, italic, bulleted-list, and numbered-list formatting. The editor displays formatted text and stores Markdown.
 - Search by title, description, coaching point, or label, and filter by stage or label. Open drills in a separate detail screen, with a back action that retains search filters.
 - Validate edits immediately and retain the prior valid data when a change is rejected. Reload the selected preloaded dataset explicitly, including after edits.
@@ -29,7 +30,7 @@ Implemented:
 
 Important current constraints:
 
-- Training-data editing is still an initial increment: drill creation/deletion, titles, descriptions, stage availability, stage catalog entries, label management, and coaching points are editable. Modifications are not yet editable.
+- Training-data editing covers the catalog and drill content needed by the current schema. New data is validated on every change and before export.
 - Edits and the selected plan exist only in memory. Refreshing loses both. Export downloads the working copy; it does not overwrite the source file or store data in the browser.
 - Replacing a dataset warns before discarding edits that have not been exported. Deleting a drill clears any selected plan slots for it.
 - A drill may be unassigned from all stages. Blank datasets can be created without loading JSON; editing remains transient and must be exported before refreshing.
@@ -50,7 +51,7 @@ Before adding features, use the app to create and share a few actual sessions. R
 
 The editor is a separate mode and works on an in-memory copy. Continue in small increments:
 
-1. Add modification management: create, edit, and delete general and drill-specific modifications and their options, while keeping stable IDs and valid references.
+1. **Complete:** Add modification management: create, edit, and delete reusable modifications and their options, assign them to drills, and keep IDs and references valid.
 
 When deleting an in-use label, stage, or modification, warn with the reference count and a short sample when the list is long. Let the trainer cancel or reassign references before deletion. For modifications, reassignment may also require mapping selected options. Keep the selected plan in memory where possible, but clear entries that are no longer valid; do not add plan or edit persistence.
 

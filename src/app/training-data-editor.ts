@@ -13,14 +13,16 @@ import { MarkdownDescriptionEditor } from './markdown-description-editor';
 import {
   Drill,
   LabelDefinition,
+  ModificationDefinition,
   StageDefinition,
   TrainingData,
   TrainingDataValidationError,
 } from './training-data';
+import { ModificationSelectionMapping } from './training-plan';
 import { TrainingDataStore } from './training-data-store';
 import { TranslationMessage } from './translation-message';
 
-type EditorSection = 'home' | 'drills' | 'stages' | 'labels';
+type EditorSection = 'home' | 'drills' | 'stages' | 'labels' | 'modifications';
 
 @Component({
   selector: 'app-training-data-editor',
@@ -34,13 +36,15 @@ export class TrainingDataEditor implements OnChanges {
   @Input() isEditing = false;
   @Input() isLoading = false;
   @Input() resetToken = 0;
-  @Output() readonly dataChanged = new EventEmitter<void>();
+  @Output() readonly dataChanged = new EventEmitter<ModificationSelectionMapping | undefined>();
 
   protected readonly trainingData = this.trainingDataStore.trainingData;
   protected readonly hasUnsavedChanges = this.trainingDataStore.hasUnsavedChanges;
   protected readonly selectedEditorDrillId = signal<string | null>(null);
   protected readonly editorSection = signal<EditorSection>('home');
   protected readonly editorSearchQuery = signal('');
+  protected readonly modificationSearchQuery = signal('');
+  protected readonly selectedModificationId = signal<string | null>(null);
   protected readonly editorStageFilterId = signal('');
   protected readonly editorLabelFilterId = signal('');
   protected readonly editorError = signal<TranslationMessage | null>(null);
@@ -48,23 +52,76 @@ export class TrainingDataEditor implements OnChanges {
   protected readonly stageReassignmentId = signal('');
   protected readonly pendingLabelDeletionId = signal<string | null>(null);
   protected readonly labelReassignmentId = signal('');
+  protected readonly pendingModificationDeletionId = signal<string | null>(null);
+  protected readonly modificationReassignmentId = signal('');
+  protected readonly modificationOptionMappings = signal<Record<string, string>>({});
+  protected readonly pendingOptionDeletion = signal<{
+    modificationId: string;
+    optionId: string;
+  } | null>(null);
+  protected readonly optionReassignmentId = signal('');
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['resetToken']) {
       this.editorSection.set('home');
       this.selectedEditorDrillId.set(null);
+      this.modificationSearchQuery.set('');
+      this.selectedModificationId.set(null);
       this.editorSearchQuery.set('');
       this.editorStageFilterId.set('');
       this.editorLabelFilterId.set('');
       this.editorError.set(null);
       this.cancelStageDeletion();
       this.cancelLabelDeletion();
+      this.cancelModificationDeletion();
+      this.cancelOptionDeletion();
     } else if (changes['isEditing'] && !this.isEditing) {
       this.editorSection.set('home');
       this.selectedEditorDrillId.set(null);
+      this.selectedModificationId.set(null);
       this.cancelStageDeletion();
       this.cancelLabelDeletion();
+      this.cancelModificationDeletion();
+      this.cancelOptionDeletion();
     }
+  }
+
+  protected selectedModification(): ModificationDefinition | undefined {
+    const selectedId = this.selectedModificationId();
+    return this.trainingData()?.catalog.modifications.find(
+      (modification) => modification.id === selectedId,
+    );
+  }
+
+  protected filteredModifications(): ModificationDefinition[] {
+    const modifications = this.trainingData()?.catalog.modifications ?? [];
+    const query = this.modificationSearchQuery().trim().toLowerCase();
+    return modifications.filter((modification) => modification.label.toLowerCase().includes(query));
+  }
+
+  protected onModificationSearchChanged(event: Event): void {
+    const input = event.target;
+    if (input instanceof HTMLInputElement) {
+      this.modificationSearchQuery.set(input.value);
+    }
+  }
+
+  protected selectModification(modificationId: string): void {
+    if (
+      this.trainingData()?.catalog.modifications.some(
+        (modification) => modification.id === modificationId,
+      )
+    ) {
+      this.selectedModificationId.set(modificationId);
+      this.cancelModificationDeletion();
+      this.cancelOptionDeletion();
+    }
+  }
+
+  protected returnToModificationList(): void {
+    this.selectedModificationId.set(null);
+    this.cancelModificationDeletion();
+    this.cancelOptionDeletion();
   }
 
   protected stages(): StageDefinition[] {
@@ -159,6 +216,11 @@ export class TrainingDataEditor implements OnChanges {
     if (section !== 'labels') {
       this.cancelLabelDeletion();
     }
+    if (section !== 'modifications') {
+      this.selectedModificationId.set(null);
+      this.cancelModificationDeletion();
+      this.cancelOptionDeletion();
+    }
   }
 
   protected returnToEditorHome(): void {
@@ -166,6 +228,349 @@ export class TrainingDataEditor implements OnChanges {
     this.selectedEditorDrillId.set(null);
     this.cancelStageDeletion();
     this.cancelLabelDeletion();
+    this.cancelModificationDeletion();
+    this.cancelOptionDeletion();
+    this.selectedModificationId.set(null);
+  }
+
+  protected addModification(): void {
+    const data = this.trainingData();
+    if (!data || this.isLoading) {
+      return;
+    }
+
+    const label = this.translatedString('editor.newModification');
+    const optionLabel = this.translatedString('editor.newModificationOption');
+    const id = this.nextAvailableId(
+      'new-modification',
+      data.catalog.modifications.map((item) => item.id),
+    );
+    const optionId = this.nextAvailableId('new-option', []);
+    const applied = this.applyTrainingDataChange((current) => ({
+      ...current,
+      catalog: {
+        ...current.catalog,
+        modifications: [
+          ...current.catalog.modifications,
+          { id, label, type: 'single-select', options: [{ id: optionId, label: optionLabel }] },
+        ],
+      },
+    }));
+    if (applied) {
+      this.selectedModificationId.set(id);
+    }
+  }
+
+  protected onModificationLabelChanged(modification: ModificationDefinition, event: Event): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+    if (input.value.trim().length === 0) {
+      input.value = modification.label;
+      this.editorError.set({ key: 'editor.modificationNameRequired' });
+      return;
+    }
+    if (
+      !this.updateModification(modification.id, (current) => ({ ...current, label: input.value }))
+    ) {
+      input.value = modification.label;
+    }
+  }
+
+  protected addModificationOption(modification: ModificationDefinition): void {
+    if (this.isLoading) {
+      return;
+    }
+
+    const label = this.translatedString('editor.newModificationOption');
+    const optionId = this.nextAvailableId(
+      'new-option',
+      modification.options.map((option) => option.id),
+    );
+    this.updateModification(modification.id, (current) => ({
+      ...current,
+      options: [...current.options, { id: optionId, label }],
+    }));
+  }
+
+  protected onModificationOptionLabelChanged(
+    modification: ModificationDefinition,
+    optionId: string,
+    event: Event,
+  ): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+    const option = modification.options.find((candidate) => candidate.id === optionId);
+    if (!option) {
+      input.value = '';
+      return;
+    }
+    if (input.value.trim().length === 0) {
+      input.value = option.label;
+      this.editorError.set({ key: 'editor.modificationOptionRequired' });
+      return;
+    }
+    if (
+      !this.updateModification(modification.id, (current) => ({
+        ...current,
+        options: current.options.map((candidate) =>
+          candidate.id === optionId ? { ...candidate, label: input.value } : candidate,
+        ),
+      }))
+    ) {
+      input.value = option.label;
+    }
+  }
+
+  protected requestDeleteModificationOption(
+    modification: ModificationDefinition,
+    optionId: string,
+  ): void {
+    if (this.isLoading || modification.options.length <= 1) {
+      return;
+    }
+    this.cancelModificationDeletion();
+    this.pendingOptionDeletion.set({ modificationId: modification.id, optionId });
+    this.optionReassignmentId.set('');
+  }
+
+  protected onOptionReassignmentChanged(event: Event): void {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const pending = this.pendingOptionDeletion();
+    const modification = this.trainingData()?.catalog.modifications.find(
+      (candidate) => candidate.id === pending?.modificationId,
+    );
+    const validTarget =
+      !select.value ||
+      modification?.options.some(
+        (option) => option.id === select.value && option.id !== pending?.optionId,
+      );
+    if (validTarget) {
+      this.optionReassignmentId.set(select.value);
+    } else {
+      select.value = this.optionReassignmentId();
+    }
+  }
+
+  protected cancelOptionDeletion(): void {
+    this.pendingOptionDeletion.set(null);
+    this.optionReassignmentId.set('');
+  }
+
+  protected confirmDeleteModificationOption(modification: ModificationDefinition): void {
+    const pending = this.pendingOptionDeletion();
+    if (
+      !pending ||
+      pending.modificationId !== modification.id ||
+      this.isLoading ||
+      modification.options.length <= 1
+    ) {
+      return;
+    }
+
+    const option = modification.options.find((candidate) => candidate.id === pending.optionId);
+    if (!option) {
+      this.cancelOptionDeletion();
+      return;
+    }
+    const replacementOptionId = this.optionReassignmentId();
+    if (
+      replacementOptionId &&
+      !modification.options.some(
+        (candidate) => candidate.id === replacementOptionId && candidate.id !== option.id,
+      )
+    ) {
+      this.editorError.set({ key: 'editor.modificationOptionReassignmentUnavailable' });
+      return;
+    }
+
+    const mapping = replacementOptionId
+      ? {
+          [modification.id]: {
+            targetModificationId: modification.id,
+            optionIds: { [option.id]: replacementOptionId },
+          },
+        }
+      : undefined;
+    if (
+      !this.applyTrainingDataChange(
+        (data) => ({
+          ...data,
+          catalog: {
+            ...data.catalog,
+            modifications: data.catalog.modifications.map((candidate) =>
+              candidate.id === modification.id
+                ? {
+                    ...candidate,
+                    options: candidate.options.filter((item) => item.id !== option.id),
+                  }
+                : candidate,
+            ),
+          },
+        }),
+        mapping,
+      )
+    ) {
+      return;
+    }
+    this.cancelOptionDeletion();
+  }
+
+  protected modificationOptionIsPending(modificationId: string, optionId: string): boolean {
+    const pending = this.pendingOptionDeletion();
+    return pending?.modificationId === modificationId && pending.optionId === optionId;
+  }
+
+  protected drillsUsingModification(modificationId: string): Drill[] {
+    return (
+      this.trainingData()?.drills.filter((drill) =>
+        drill.modificationIds.includes(modificationId),
+      ) ?? []
+    );
+  }
+
+  protected requestDeleteModification(modification: ModificationDefinition): void {
+    if (this.isLoading) {
+      return;
+    }
+    this.cancelOptionDeletion();
+    this.editorError.set(null);
+    this.pendingModificationDeletionId.set(modification.id);
+    this.modificationReassignmentId.set('');
+    this.modificationOptionMappings.set({});
+  }
+
+  protected onModificationReassignmentChanged(event: Event): void {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+    const modificationId = this.pendingModificationDeletionId();
+    const validTarget =
+      !select.value ||
+      this.trainingData()?.catalog.modifications.some(
+        (modification) => modification.id === select.value && modification.id !== modificationId,
+      );
+    if (validTarget) {
+      this.modificationReassignmentId.set(select.value);
+      this.modificationOptionMappings.set({});
+    } else {
+      select.value = this.modificationReassignmentId();
+    }
+  }
+
+  protected onModificationOptionMappingChanged(optionId: string, event: Event): void {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+    this.modificationOptionMappings.update((mappings) => ({
+      ...mappings,
+      [optionId]: select.value,
+    }));
+  }
+
+  protected targetModificationOptions(): ModificationDefinition['options'] {
+    const targetId = this.modificationReassignmentId();
+    return (
+      this.trainingData()?.catalog.modifications.find(
+        (modification) => modification.id === targetId,
+      )?.options ?? []
+    );
+  }
+
+  protected cancelModificationDeletion(): void {
+    this.pendingModificationDeletionId.set(null);
+    this.modificationReassignmentId.set('');
+    this.modificationOptionMappings.set({});
+  }
+
+  protected confirmDeleteModification(modification: ModificationDefinition): void {
+    if (this.pendingModificationDeletionId() !== modification.id || this.isLoading) {
+      return;
+    }
+
+    const targetModificationId = this.modificationReassignmentId();
+    const remainingModifications = this.trainingData()?.catalog.modifications.filter(
+      (candidate) => candidate.id !== modification.id,
+    );
+    const targetModification = remainingModifications?.find(
+      (candidate) => candidate.id === targetModificationId,
+    );
+    if (targetModificationId && !targetModification) {
+      this.editorError.set({ key: 'editor.modificationReassignmentUnavailable' });
+      return;
+    }
+
+    const optionIds: Record<string, string> = {};
+    if (targetModification) {
+      for (const option of modification.options) {
+        const targetOptionId = this.modificationOptionMappings()[option.id];
+        if (
+          targetOptionId &&
+          !targetModification.options.some((candidate) => candidate.id === targetOptionId)
+        ) {
+          this.editorError.set({ key: 'editor.modificationOptionReassignmentUnavailable' });
+          return;
+        }
+        if (targetOptionId) {
+          optionIds[option.id] = targetOptionId;
+        }
+      }
+    }
+
+    const mapping: ModificationSelectionMapping | undefined = targetModification
+      ? {
+          [modification.id]: {
+            targetModificationId: targetModification.id,
+            optionIds,
+          },
+        }
+      : undefined;
+    const applied = this.applyTrainingDataChange(
+      (data) => ({
+        ...data,
+        catalog: {
+          ...data.catalog,
+          modifications: data.catalog.modifications.filter(
+            (candidate) => candidate.id !== modification.id,
+          ),
+        },
+        drills: data.drills.map((drill) => ({
+          ...drill,
+          modificationIds: this.replaceReferenceId(
+            drill.modificationIds,
+            modification.id,
+            targetModificationId,
+          ),
+        })),
+      }),
+      mapping,
+    );
+    if (applied) {
+      this.cancelModificationDeletion();
+      this.selectedModificationId.set(null);
+    }
+  }
+
+  protected onDrillModificationToggled(drill: Drill, modificationId: string, event: Event): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+    const modificationIds = input.checked
+      ? [...drill.modificationIds, modificationId]
+      : drill.modificationIds.filter((id) => id !== modificationId);
+    if (!this.updateDrill(drill.id, (current) => ({ ...current, modificationIds }))) {
+      input.checked = drill.modificationIds.includes(modificationId);
+    }
   }
 
   protected addLabel(): void {
@@ -698,6 +1103,40 @@ export class TrainingDataEditor implements OnChanges {
     }));
   }
 
+  private updateModification(
+    modificationId: string,
+    update: (modification: ModificationDefinition) => ModificationDefinition,
+  ): boolean {
+    return this.applyTrainingDataChange((data) => ({
+      ...data,
+      catalog: {
+        ...data.catalog,
+        modifications: data.catalog.modifications.map((modification) =>
+          modification.id === modificationId ? update(modification) : modification,
+        ),
+      },
+    }));
+  }
+
+  private translatedString(key: string): string {
+    const value = this.translate.instant(key);
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new Error(`The translation "${key}" must be a non-empty string.`);
+    }
+    return value;
+  }
+
+  private nextAvailableId(base: string, existingIds: string[]): string {
+    const ids = new Set(existingIds);
+    let id = base;
+    let suffix = 2;
+    while (ids.has(id)) {
+      id = `${base}-${suffix}`;
+      suffix += 1;
+    }
+    return id;
+  }
+
   private replaceReferenceId(ids: string[], removedId: string, replacementId: string): string[] {
     const updatedIds: string[] = [];
     for (const id of ids) {
@@ -709,7 +1148,10 @@ export class TrainingDataEditor implements OnChanges {
     return updatedIds;
   }
 
-  private applyTrainingDataChange(update: (data: TrainingData) => TrainingData): boolean {
+  private applyTrainingDataChange(
+    update: (data: TrainingData) => TrainingData,
+    modificationMapping?: ModificationSelectionMapping,
+  ): boolean {
     const validationError = this.trainingDataStore.applyChange(update);
     if (validationError) {
       this.editorError.set({
@@ -723,7 +1165,7 @@ export class TrainingDataEditor implements OnChanges {
     }
 
     this.editorError.set(null);
-    this.dataChanged.emit();
+    this.dataChanged.emit(modificationMapping);
     return true;
   }
 }

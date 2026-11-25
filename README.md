@@ -12,9 +12,10 @@ For suggested next steps and context to carry into a new Copilot session, see [`
 - Preview and copy the plan as formatted WhatsApp text, including descriptions, coaching points, and selected modifications.
 - Add and delete drills, and edit their titles, available stages, and labels in an in-memory working copy.
 - Add, edit, reorder, and delete coaching points for each drill.
+- Manage reusable modifications and their options, and choose which drills use each modification. Deletion warns about affected drills, supports cancellation or reassignment, and can map selected options so the current plan is preserved where possible.
 - Manage labels by creating, renaming, and deleting them, assigning them to drills, and choosing main-filter labels. Deleting a used label warns about its drill and main-filter references and allows reassignment, removal, or cancellation.
 - Start from an empty dataset without loading a file. Create drills and stages in either order; drills can be assigned to stages later. Export downloads the new dataset as `new-training-data-export.json`.
-- Open a data-editing hub with separate Drills, Stages, and Labels areas; drill search, detail, and back navigation remain within Drills.
+- Open a data-editing hub with separate Drills, Stages, Labels, and Modifications areas. Modifications have a searchable name list and a focused detail screen for editing options and drill availability; drill search, detail, and back navigation remain within Drills.
 - Manage stages by adding, renaming, reordering, and changing default drill counts. Deleting a stage shows affected drills and lets you reassign them, leave them unassigned, or cancel.
 - Edit descriptions in a visual Markdown editor with bold, italic, numbered-list, and bullet-list formatting. The editor displays formatted text while storing Markdown in the JSON.
 - Search by title, description, coaching point, or label, and filter by stage or label while editing. Open a drill in a separate detail screen and return to the search with its filters retained. Each data change is validated immediately; rejected changes leave the previous valid data available for export.
@@ -47,8 +48,8 @@ Training JSON files use `schemaVersion: 1` and contain a catalog and a drill lis
 
 - `catalog.stages`: ordered stages with `id`, display `label`, `order`, and `defaultDrillCount`.
 - `catalog.labels`: the available labels. `catalog.mainFilterLabelIds` determines which labels appear as the main filters; other labels are available in the additional filters.
-- `catalog.modifications`: selectable drill modifications, each with a `single-select` type and a list of options.
-- `drills`: drills with `id`, `title`, `availableStageIds`, `labelIds`, `descriptionMarkdown`, and `modificationIds`. A drill may also have `coachingPoints` and a future-use `diagram` field.
+- `catalog.modifications`: reusable selectable drill modifications, each with a `single-select` type and a list of options. A modification can be available for multiple drills.
+- `drills`: drills with `id`, `title`, `availableStageIds`, `labelIds`, `descriptionMarkdown`, and `modificationIds` (the modifications available for that drill). A drill may also have `coachingPoints` and a future-use `diagram` field.
 
 IDs within each collection must be unique, and references must point to existing entries. Stage orders must also be unique, and default drill counts must be non-negative integers. The app validates the JSON and its references when loading and exporting it. Stage labels, drill content, labels, and modification text are displayed as authored in the JSON; only the application interface is translated.
 

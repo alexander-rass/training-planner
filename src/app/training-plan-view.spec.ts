@@ -75,4 +75,54 @@ describe('TrainingPlanView', () => {
       true,
     );
   });
+
+  it('reassigns selected plan options when a modification is reassigned', () => {
+    const fixture = createPlanFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const drillSelect = compiled.querySelector('.slot .select-control select') as HTMLSelectElement;
+    drillSelect.value = 'drill-001';
+    drillSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const optionSelect = compiled.querySelector('.modifications select') as HTMLSelectElement;
+    optionSelect.value = 'line';
+    optionSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(optionSelect.value).toBe('line');
+
+    const store = TestBed.inject(TrainingDataStore);
+    const validationError = store.applyChange((current) => ({
+      ...current,
+      catalog: {
+        ...current.catalog,
+        modifications: [
+          {
+            id: 'player-layout',
+            label: 'Player layout',
+            type: 'single-select',
+            options: [{ id: 'circle', label: 'Circle' }],
+          },
+        ],
+      },
+      drills: current.drills.map((drill) =>
+        drill.id === 'drill-001' ? { ...drill, modificationIds: ['player-layout'] } : drill,
+      ),
+    }));
+    expect(validationError).toBeNull();
+
+    fixture.componentRef.setInput('modificationSelectionMapping', {
+      'player-selection': {
+        targetModificationId: 'player-layout',
+        optionIds: { line: 'circle' },
+      },
+    });
+    fixture.componentRef.setInput('dataChangeToken', 1);
+    fixture.detectChanges();
+
+    const reassignedSelect = compiled.querySelector('.modifications select') as HTMLSelectElement;
+    expect(reassignedSelect.value).toBe('circle');
+    expect(compiled.querySelector('.message-preview')?.textContent).toContain(
+      'Player layout: Circle',
+    );
+  });
 });

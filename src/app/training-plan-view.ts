@@ -10,7 +10,13 @@ import {
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { MarkdownPipe } from './markdown.pipe';
 import { Drill, ModificationDefinition, StageDefinition } from './training-data';
-import { formatWhatsAppPlan, PlanSlot, StagePlan, whatsAppToMarkdown } from './training-plan';
+import {
+  formatWhatsAppPlan,
+  ModificationSelectionMapping,
+  PlanSlot,
+  StagePlan,
+  whatsAppToMarkdown,
+} from './training-plan';
 import { TrainingDataStore } from './training-data-store';
 import { TranslationMessage } from './translation-message';
 
@@ -29,6 +35,7 @@ export class TrainingPlanView implements OnChanges {
   @Input() isVisible = true;
   @Input() resetToken = 0;
   @Input() dataChangeToken = 0;
+  @Input() modificationSelectionMapping: ModificationSelectionMapping | null = null;
 
   protected readonly trainingData = this.trainingDataStore.trainingData;
   protected readonly selectedLabelIds = signal<ReadonlySet<string>>(new Set());
@@ -53,7 +60,7 @@ export class TrainingPlanView implements OnChanges {
     if (changes['resetToken']) {
       this.resetPlan();
     } else if (changes['dataChangeToken']) {
-      this.reconcileStagePlans();
+      this.reconcileStagePlans(this.modificationSelectionMapping);
       this.resetCopyStatus();
     }
   }
@@ -267,7 +274,7 @@ export class TrainingPlanView implements OnChanges {
     this.resetCopyStatus();
   }
 
-  private reconcileStagePlans(): void {
+  private reconcileStagePlans(mapping: ModificationSelectionMapping | null = null): void {
     const data = this.trainingData();
     if (!data) {
       return;
@@ -303,15 +310,38 @@ export class TrainingPlanView implements OnChanges {
                 return { drillId: null, modificationSelections: {} };
               }
 
-              const modificationSelections = Object.fromEntries(
-                Object.entries(slot.modificationSelections).filter(
-                  ([modificationId, optionId]) =>
-                    drill.modificationIds.includes(modificationId) &&
-                    modificationsById
-                      .get(modificationId)
-                      ?.options.some((option) => option.id === optionId),
+              const previousSelections = Object.entries(slot.modificationSelections);
+              const reassignedTargetIds = new Set(
+                Object.values(mapping ?? {}).map(
+                  ({ targetModificationId }) => targetModificationId,
                 ),
               );
+              const orderedSelections = [
+                ...previousSelections.filter(([modificationId]) =>
+                  reassignedTargetIds.has(modificationId),
+                ),
+                ...previousSelections.filter(
+                  ([modificationId]) => !reassignedTargetIds.has(modificationId),
+                ),
+              ];
+              const modificationSelections: Record<string, string> = {};
+              for (const [sourceModificationId, sourceOptionId] of orderedSelections) {
+                const reassignment = mapping?.[sourceModificationId];
+                const modificationId = reassignment?.targetModificationId ?? sourceModificationId;
+                const optionId = reassignment
+                  ? (reassignment.optionIds[sourceOptionId] ??
+                    (modificationId === sourceModificationId ? sourceOptionId : undefined))
+                  : sourceOptionId;
+                const targetModification = modificationsById.get(modificationId);
+                if (
+                  optionId &&
+                  drill.modificationIds.includes(modificationId) &&
+                  targetModification?.options.some((option) => option.id === optionId) &&
+                  !modificationSelections[modificationId]
+                ) {
+                  modificationSelections[modificationId] = optionId;
+                }
+              }
               return { ...slot, modificationSelections };
             }),
           };

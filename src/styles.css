@@ -155,7 +155,8 @@ app-root .editor-actions {
 
 app-root .editor-home-page,
 app-root .stage-manager-page,
-app-root .label-manager-page {
+app-root .label-manager-page,
+app-root .modification-manager-page {
   display: grid;
   gap: 1rem;
 }
@@ -229,29 +230,75 @@ app-root .editor-page-heading {
 }
 
 app-root .stage-manager,
-app-root .label-manager {
+app-root .label-manager,
+app-root .modification-manager {
   display: grid;
   gap: 1rem;
 }
 
+app-root .modification-detail-page {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+app-root .modification-browser-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+app-root .modification-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+app-root .modification-list-item {
+  min-height: 3rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #dce5dc;
+  border-radius: 0.65rem;
+  background: #fff;
+  color: #287348;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+}
+
+app-root .modification-list-item:hover {
+  border-color: #287348;
+  background: #edf5ef;
+}
+
+app-root .modification-list-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 app-root .stage-manager > .editor-results-heading,
-app-root .label-manager > .editor-results-heading {
+app-root .label-manager > .editor-results-heading,
+app-root .modification-manager > .editor-results-heading {
   align-items: center;
 }
 
 app-root .stage-manager > .editor-results-heading p,
-app-root .label-manager > .editor-results-heading p {
+app-root .label-manager > .editor-results-heading p,
+app-root .modification-manager > .editor-results-heading p {
   line-height: 1.5;
 }
 
 app-root .stage-editor-list,
-app-root .label-editor-list {
+app-root .label-editor-list,
+app-root .modification-editor-list {
   display: grid;
   gap: 0.75rem;
 }
 
 app-root .stage-editor-row,
-app-root .label-editor-row {
+app-root .label-editor-row,
+app-root .modification-editor-row {
   display: grid;
   gap: 0.75rem;
   min-width: 0;
@@ -271,6 +318,49 @@ app-root .label-editor-fields {
 app-root .label-editor-fields {
   grid-template-columns: minmax(0, 2fr) minmax(10rem, 1fr) auto;
   align-items: end;
+}
+
+app-root .modification-editor-fields,
+app-root .modification-option-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+app-root .modification-options,
+app-root .modification-option-mappings {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+app-root .modification-options legend,
+app-root .modification-option-mappings legend {
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+}
+
+app-root .modification-drill-assignments {
+  border-top: 1px solid #e1e9e2;
+  padding-top: 0.75rem;
+}
+
+app-root .modification-drill-assignments summary {
+  color: #287348;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+app-root .modification-drill-list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 16rem;
+  margin-top: 0.75rem;
+  overflow: auto;
 }
 
 app-root .main-filter-label {
@@ -296,7 +386,8 @@ app-root .stage-order-controls button:disabled {
 }
 
 app-root .stage-delete-panel,
-app-root .label-delete-panel {
+app-root .label-delete-panel,
+app-root .modification-delete-panel {
   display: grid;
   gap: 0.75rem;
   padding: 0.9rem;
@@ -306,7 +397,8 @@ app-root .label-delete-panel {
 }
 
 app-root .stage-delete-panel .message,
-app-root .label-delete-panel .message {
+app-root .label-delete-panel .message,
+app-root .modification-delete-panel .message {
   margin: 0;
   padding: 0;
   border: 0;
@@ -315,13 +407,15 @@ app-root .label-delete-panel .message {
 }
 
 app-root .stage-delete-panel ul,
-app-root .label-delete-panel ul {
+app-root .label-delete-panel ul,
+app-root .modification-delete-panel ul {
   margin: 0;
   padding-left: 1.4rem;
 }
 
 app-root .stage-delete-actions,
-app-root .label-delete-actions {
+app-root .label-delete-actions,
+app-root .modification-delete-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -617,6 +711,22 @@ app-root .delete-button {
   }
 
   app-root .label-editor-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  app-root .modification-editor-fields,
+  app-root .modification-option-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  app-root .modification-manager > .editor-results-heading,
+  app-root .stage-manager > .editor-results-heading,
+  app-root .label-manager > .editor-results-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  app-root .modification-browser-controls {
     grid-template-columns: minmax(0, 1fr);
   }
 

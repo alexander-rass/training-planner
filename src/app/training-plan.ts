@@ -5,6 +5,13 @@ export interface PlanSlot {
   modificationSelections: Record<string, string>;
 }
 
+export interface ModificationSelectionMapping {
+  [sourceModificationId: string]: {
+    targetModificationId: string;
+    optionIds: Record<string, string>;
+  };
+}
+
 export interface StagePlan {
   stageId: string;
   slots: PlanSlot[];

@@ -4,6 +4,7 @@ import { TrainingDataEditor } from './training-data-editor';
 import { TrainingPlanView } from './training-plan-view';
 import { TrainingDataValidationError } from './training-data';
 import { createJsonDownloadPayload } from './training-data-download';
+import { ModificationSelectionMapping } from './training-plan';
 import { TrainingDataSource } from './training-data-source';
 import { TrainingDataStore } from './training-data-store';
 import { TranslationMessage } from './translation-message';
@@ -24,6 +25,9 @@ export class App {
   protected readonly hasUnsavedChanges = this.trainingDataStore.hasUnsavedChanges;
   protected readonly isEditingData = signal(false);
   protected readonly planDataChangeToken = signal(0);
+  protected readonly modificationSelectionMapping = signal<ModificationSelectionMapping | null>(
+    null,
+  );
   protected readonly currentLanguage = this.translate.currentLang;
   protected readonly languageError = signal<TranslationMessage | null>(null);
   protected readonly downloadError = signal<TranslationMessage | null>(null);
@@ -49,7 +53,8 @@ export class App {
     this.isEditingData.update((editing) => !editing);
   }
 
-  protected onTrainingDataEdited(): void {
+  protected onTrainingDataEdited(mapping?: ModificationSelectionMapping): void {
+    this.modificationSelectionMapping.set(mapping ?? null);
     this.planDataChangeToken.update((token) => token + 1);
     this.downloadError.set(null);
   }

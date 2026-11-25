@@ -24,7 +24,7 @@ async function createAppFixture() {
 
 function openEditorSection(
   fixture: ComponentFixture<App>,
-  section: 'drills' | 'stages' | 'labels',
+  section: 'drills' | 'stages' | 'labels' | 'modifications',
 ): void {
   const compiled = fixture.nativeElement as HTMLElement;
   const sectionButton = compiled.querySelector(
@@ -245,6 +245,78 @@ describe('App', () => {
     const drillSelect = compiled.querySelector('.slot .select-control select') as HTMLSelectElement;
     expect([...drillSelect.options].map((option) => option.value)).toContain('drill-001');
     expect([...drillSelect.options].map((option) => option.value)).not.toContain('drill-002');
+  });
+
+  it('reassigns selected modification choices in the current plan', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = { name: 'pilot-data.json', text: async () => trainingDataJson };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [file] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const drillSelect = compiled.querySelector('.slot .select-control select') as HTMLSelectElement;
+    drillSelect.value = 'drill-001';
+    drillSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    const optionSelect = compiled.querySelector('.modifications select') as HTMLSelectElement;
+    optionSelect.value = 'line';
+    optionSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(optionSelect.value).toBe('line');
+
+    const editButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    editButton.click();
+    fixture.detectChanges();
+    openEditorSection(fixture, 'modifications');
+
+    (compiled.querySelector('.modification-manager .copy-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (compiled.querySelector('.modification-back-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (
+      compiled.querySelector(
+        '.modification-list-item[aria-label="Player selection"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    (
+      compiled.querySelector(
+        '.modification-editor-row[aria-label="Player selection"] .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    const deletePanel = compiled.querySelector('.modification-delete-panel') as HTMLElement;
+    const targetModification = deletePanel.querySelector('select') as HTMLSelectElement;
+    targetModification.value = 'new-modification';
+    targetModification.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    const optionMapping = deletePanel.querySelector(
+      '.modification-option-mappings select',
+    ) as HTMLSelectElement;
+    optionMapping.value = 'new-option';
+    optionMapping.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    (
+      deletePanel.querySelector('.modification-delete-actions .delete-button') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    const returnButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Zurück zum Planer'),
+    ) as HTMLButtonElement;
+    returnButton.click();
+    fixture.detectChanges();
+
+    const reassignedOption = compiled.querySelector('.modifications select') as HTMLSelectElement;
+    expect(reassignedOption.value).toBe('new-option');
+    expect(compiled.querySelector('.message-preview')?.textContent).toContain(
+      'Neue Anpassung: Neue Option',
+    );
   });
 
   it('edits a drill title and coaching point while keeping the selected plan drill', async () => {

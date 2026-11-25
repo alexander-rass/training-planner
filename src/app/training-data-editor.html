@@ -66,6 +66,22 @@
               {{ 'editor.labelsSectionDescription' | translate }}
             </span>
           </button>
+          <button
+            class="editor-section-card modifications-section-card"
+            type="button"
+            [disabled]="isLoading"
+            (click)="openEditorSection('modifications')"
+          >
+            <span class="editor-section-card-title">
+              {{
+                'editor.modificationsSection'
+                  | translate: { count: data.catalog.modifications.length }
+              }}
+            </span>
+            <span class="editor-section-card-description">
+              {{ 'editor.modificationsSectionDescription' | translate }}
+            </span>
+          </button>
         </div>
       </section>
     } @else if (editorSection() === 'stages') {
@@ -368,6 +384,321 @@
             }
           </div>
         </div>
+      </section>
+    } @else if (editorSection() === 'modifications') {
+      <section class="modification-manager-page" aria-labelledby="modification-manager-heading">
+        <div class="editor-page-heading">
+          <button class="text-button" type="button" (click)="returnToEditorHome()">
+            {{ 'editor.backToOptions' | translate }}
+          </button>
+          <h3 id="modification-manager-heading">
+            {{ 'editor.modificationManagementHeading' | translate }}
+          </h3>
+        </div>
+        @if (selectedModification(); as modification) {
+          <section class="modification-detail-page">
+            <button
+              class="text-button modification-back-button"
+              type="button"
+              (click)="returnToModificationList()"
+            >
+              {{ 'editor.backToModifications' | translate }}
+            </button>
+            <section class="modification-editor-row" [attr.aria-label]="modification.label">
+              <div class="modification-editor-fields">
+                <label class="editor-field">
+                  <span>{{ 'editor.modificationName' | translate }}</span>
+                  <input
+                    type="text"
+                    required
+                    [disabled]="isLoading"
+                    [value]="modification.label"
+                    (change)="onModificationLabelChanged(modification, $event)"
+                  />
+                </label>
+                <button
+                  class="text-button delete-button"
+                  type="button"
+                  [disabled]="isLoading"
+                  (click)="requestDeleteModification(modification)"
+                >
+                  {{ 'editor.deleteModification' | translate }}
+                </button>
+              </div>
+
+              @if (pendingModificationDeletionId() === modification.id) {
+                <div
+                  class="modification-delete-panel"
+                  role="group"
+                  [attr.aria-label]="'editor.deleteModification' | translate"
+                >
+                  @if (drillsUsingModification(modification.id).length > 4) {
+                    <p class="message error" role="alert">
+                      {{
+                        'editor.modificationUsedMany'
+                          | translate
+                            : {
+                                label: modification.label,
+                                count: drillsUsingModification(modification.id).length,
+                              }
+                      }}
+                    </p>
+                    <ul>
+                      @for (
+                        drill of drillsUsingModification(modification.id).slice(0, 2);
+                        track drill.id
+                      ) {
+                        <li>{{ drill.title }}</li>
+                      }
+                    </ul>
+                  } @else if (drillsUsingModification(modification.id).length > 0) {
+                    <p class="message error" role="alert">
+                      {{
+                        'editor.modificationUsed'
+                          | translate
+                            : {
+                                label: modification.label,
+                                count: drillsUsingModification(modification.id).length,
+                              }
+                      }}
+                    </p>
+                    <ul>
+                      @for (drill of drillsUsingModification(modification.id); track drill.id) {
+                        <li>{{ drill.title }}</li>
+                      }
+                    </ul>
+                  } @else {
+                    <p>{{ 'editor.modificationUnused' | translate }}</p>
+                  }
+
+                  @if (drillsUsingModification(modification.id).length > 0) {
+                    <label class="select-control">
+                      <span>{{ 'editor.reassignModification' | translate }}</span>
+                      <select (change)="onModificationReassignmentChanged($event)">
+                        <option value="" [selected]="!modificationReassignmentId()">
+                          {{ 'editor.removeModificationReferences' | translate }}
+                        </option>
+                        @for (
+                          targetModification of data.catalog.modifications;
+                          track targetModification.id
+                        ) {
+                          @if (targetModification.id !== modification.id) {
+                            <option
+                              [value]="targetModification.id"
+                              [selected]="targetModification.id === modificationReassignmentId()"
+                            >
+                              {{ targetModification.label }}
+                            </option>
+                          }
+                        }
+                      </select>
+                    </label>
+                  }
+                  @if (modificationReassignmentId()) {
+                    <fieldset class="modification-option-mappings">
+                      <legend>{{ 'editor.mapModificationOptions' | translate }}</legend>
+                      @for (option of modification.options; track option.id) {
+                        <label class="select-control">
+                          <span>{{ option.label }}</span>
+                          <select
+                            [value]="modificationOptionMappings()[option.id] ?? ''"
+                            (change)="onModificationOptionMappingChanged(option.id, $event)"
+                          >
+                            <option value="">
+                              {{ 'editor.clearModificationOptionSelection' | translate }}
+                            </option>
+                            @for (
+                              targetOption of targetModificationOptions();
+                              track targetOption.id
+                            ) {
+                              <option [value]="targetOption.id">{{ targetOption.label }}</option>
+                            }
+                          </select>
+                        </label>
+                      }
+                    </fieldset>
+                  }
+                  <p class="editor-hint">
+                    {{ 'editor.deletedModificationNotice' | translate }}
+                  </p>
+                  <div class="modification-delete-actions">
+                    <button
+                      class="text-button"
+                      type="button"
+                      [disabled]="isLoading"
+                      (click)="cancelModificationDeletion()"
+                    >
+                      {{ 'editor.cancelModificationDeletion' | translate }}
+                    </button>
+                    <button
+                      class="text-button delete-button"
+                      type="button"
+                      [disabled]="isLoading"
+                      (click)="confirmDeleteModification(modification)"
+                    >
+                      {{ 'editor.confirmDeleteModification' | translate }}
+                    </button>
+                  </div>
+                </div>
+              }
+
+              <fieldset class="modification-options">
+                <legend>{{ 'editor.modificationOptions' | translate }}</legend>
+                @for (option of modification.options; track option.id) {
+                  <div class="modification-option-row">
+                    <label class="editor-field">
+                      <span>{{ 'editor.modificationOptionName' | translate }}</span>
+                      <input
+                        type="text"
+                        required
+                        [disabled]="isLoading"
+                        [value]="option.label"
+                        (change)="onModificationOptionLabelChanged(modification, option.id, $event)"
+                      />
+                    </label>
+                    <button
+                      class="text-button delete-button"
+                      type="button"
+                      [disabled]="isLoading || modification.options.length <= 1"
+                      [attr.aria-label]="
+                        'editor.deleteModificationOptionAria' | translate: { option: option.label }
+                      "
+                      (click)="requestDeleteModificationOption(modification, option.id)"
+                    >
+                      {{ 'editor.deleteModificationOption' | translate }}
+                    </button>
+                  </div>
+                  @if (modificationOptionIsPending(modification.id, option.id)) {
+                    <div class="modification-delete-panel" role="group">
+                      <p class="editor-hint">
+                        {{ 'editor.deletedModificationOptionNotice' | translate }}
+                      </p>
+                      <label class="select-control">
+                        <span>{{ 'editor.reassignModificationOption' | translate }}</span>
+                        <select (change)="onOptionReassignmentChanged($event)">
+                          <option value="" [selected]="!optionReassignmentId()">
+                            {{ 'editor.clearModificationOptionSelection' | translate }}
+                          </option>
+                          @for (targetOption of modification.options; track targetOption.id) {
+                            @if (targetOption.id !== option.id) {
+                              <option
+                                [value]="targetOption.id"
+                                [selected]="targetOption.id === optionReassignmentId()"
+                              >
+                                {{ targetOption.label }}
+                              </option>
+                            }
+                          }
+                        </select>
+                      </label>
+                      <div class="modification-delete-actions">
+                        <button
+                          class="text-button"
+                          type="button"
+                          [disabled]="isLoading"
+                          (click)="cancelOptionDeletion()"
+                        >
+                          {{ 'editor.cancelModificationDeletion' | translate }}
+                        </button>
+                        <button
+                          class="text-button delete-button"
+                          type="button"
+                          [disabled]="isLoading"
+                          (click)="confirmDeleteModificationOption(modification)"
+                        >
+                          {{ 'editor.confirmDeleteModificationOption' | translate }}
+                        </button>
+                      </div>
+                    </div>
+                  }
+                }
+                @if (modification.options.length === 1) {
+                  <p class="editor-hint">
+                    {{ 'editor.modificationMinimumOption' | translate }}
+                  </p>
+                }
+                <button
+                  class="text-button"
+                  type="button"
+                  [disabled]="isLoading"
+                  (click)="addModificationOption(modification)"
+                >
+                  {{ 'editor.addModificationOption' | translate }}
+                </button>
+              </fieldset>
+
+              <details class="modification-drill-assignments">
+                <summary>
+                  {{
+                    'editor.modificationAvailableForDrills'
+                      | translate: { count: drillsUsingModification(modification.id).length }
+                  }}
+                </summary>
+                <div class="modification-drill-list">
+                  @for (drill of data.drills; track drill.id) {
+                    <label class="editor-checkbox">
+                      <input
+                        type="checkbox"
+                        [disabled]="isLoading"
+                        [checked]="drill.modificationIds.includes(modification.id)"
+                        (change)="onDrillModificationToggled(drill, modification.id, $event)"
+                      />
+                      <span>{{ drill.title }}</span>
+                    </label>
+                  } @empty {
+                    <p class="editor-hint">{{ 'editor.noDrillsForModification' | translate }}</p>
+                  }
+                </div>
+              </details>
+            </section>
+          </section>
+        } @else {
+          <div class="modification-manager">
+            <p>{{ 'editor.modificationManagerDescription' | translate }}</p>
+            <div class="modification-browser-controls">
+              <label class="editor-field">
+                <span>{{ 'editor.searchModifications' | translate }}</span>
+                <input
+                  type="search"
+                  [value]="modificationSearchQuery()"
+                  (input)="onModificationSearchChanged($event)"
+                />
+              </label>
+              <button
+                class="copy-button"
+                type="button"
+                [disabled]="isLoading"
+                (click)="addModification()"
+              >
+                {{ 'editor.addModification' | translate }}
+              </button>
+            </div>
+            <div
+              class="modification-list"
+              [attr.aria-label]="'editor.modificationList' | translate"
+            >
+              @for (modification of filteredModifications(); track modification.id) {
+                <button
+                  class="modification-list-item"
+                  type="button"
+                  [disabled]="isLoading"
+                  [attr.aria-label]="modification.label"
+                  (click)="selectModification(modification.id)"
+                >
+                  {{ modification.label }}
+                </button>
+              } @empty {
+                <p class="editor-hint">
+                  {{
+                    data.catalog.modifications.length === 0
+                      ? ('editor.noModifications' | translate)
+                      : ('editor.noModificationMatches' | translate)
+                  }}
+                </p>
+              }
+            </div>
+          </div>
+        }
       </section>
     } @else if (editorSection() === 'drills') {
       @if (editorDrill(); as drill) {

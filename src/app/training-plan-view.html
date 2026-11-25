@@ -124,11 +124,21 @@
                                 onModificationSelected(stage.id, index, modification, $event)
                               "
                             >
-                              <option value="">
+                              <option
+                                value=""
+                                [selected]="!slot.modificationSelections[modification.id]"
+                              >
                                 {{ 'modifications.chooseOption' | translate }}
                               </option>
                               @for (option of modification.options; track option.id) {
-                                <option [value]="option.id">{{ option.label }}</option>
+                                <option
+                                  [value]="option.id"
+                                  [selected]="
+                                    slot.modificationSelections[modification.id] === option.id
+                                  "
+                                >
+                                  {{ option.label }}
+                                </option>
                               }
                             </select>
                           </label>

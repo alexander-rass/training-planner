@@ -132,12 +132,13 @@
       [isEditing]="isEditingData()"
       [isLoading]="dataSource.isLoading()"
       [resetToken]="dataSource.dataRevision()"
-      (dataChanged)="onTrainingDataEdited()"
+      (dataChanged)="onTrainingDataEdited($event)"
     />
     <app-training-plan-view
       [isVisible]="!isEditingData()"
       [resetToken]="dataSource.dataRevision()"
       [dataChangeToken]="planDataChangeToken()"
+      [modificationSelectionMapping]="modificationSelectionMapping()"
     />
   } @else if (!dataSource.loadError() && !dataSource.isLoading()) {
     <section class="welcome">
