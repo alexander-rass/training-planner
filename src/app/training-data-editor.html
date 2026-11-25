@@ -267,6 +267,73 @@
               />
             </div>
 
+            <fieldset class="editor-coaching-points">
+              <legend>{{ 'editor.coachingPoints' | translate }}</legend>
+              <div class="editor-coaching-point-list">
+                @for (point of drill.coachingPoints ?? []; track $index; let index = $index) {
+                  <div class="editor-coaching-point">
+                    <label class="editor-field">
+                      <span>
+                        {{ 'editor.coachingPointOrder' | translate: { order: index + 1 } }}
+                      </span>
+                      <textarea
+                        rows="3"
+                        [disabled]="isLoading"
+                        [value]="point"
+                        [attr.aria-invalid]="point.trim().length === 0"
+                        (change)="onCoachingPointChanged(drill, index, $event)"
+                      ></textarea>
+                    </label>
+                    <div class="coaching-point-actions">
+                      <button
+                        class="text-button"
+                        type="button"
+                        [disabled]="isLoading || index === 0"
+                        [attr.aria-label]="
+                          'editor.moveCoachingPointEarlier' | translate: { order: index + 1 }
+                        "
+                        (click)="moveCoachingPoint(drill, index, -1)"
+                      >
+                        {{ 'editor.moveEarlier' | translate }}
+                      </button>
+                      <button
+                        class="text-button"
+                        type="button"
+                        [disabled]="isLoading || index === (drill.coachingPoints?.length ?? 0) - 1"
+                        [attr.aria-label]="
+                          'editor.moveCoachingPointLater' | translate: { order: index + 1 }
+                        "
+                        (click)="moveCoachingPoint(drill, index, 1)"
+                      >
+                        {{ 'editor.moveLater' | translate }}
+                      </button>
+                      <button
+                        class="text-button delete-button"
+                        type="button"
+                        [disabled]="isLoading"
+                        [attr.aria-label]="
+                          'editor.deleteCoachingPointAria' | translate: { order: index + 1 }
+                        "
+                        (click)="deleteCoachingPoint(drill, index)"
+                      >
+                        {{ 'editor.deleteCoachingPoint' | translate }}
+                      </button>
+                    </div>
+                  </div>
+                } @empty {
+                  <p class="editor-hint">{{ 'editor.noCoachingPoints' | translate }}</p>
+                }
+              </div>
+              <button
+                class="copy-button"
+                type="button"
+                [disabled]="isLoading"
+                (click)="addCoachingPoint(drill)"
+              >
+                {{ 'editor.addCoachingPoint' | translate }}
+              </button>
+            </fieldset>
+
             <fieldset class="editor-choice-group">
               <legend>{{ 'editor.availableStages' | translate }}</legend>
               @for (stage of stages(); track stage.id) {

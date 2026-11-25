@@ -401,6 +401,88 @@ export class TrainingDataEditor implements OnChanges {
     this.updateDrill(drillId, (drill) => ({ ...drill, descriptionMarkdown: markdown }));
   }
 
+  protected addCoachingPoint(drill: Drill): void {
+    if (this.isLoading) {
+      return;
+    }
+
+    const point = this.translate.instant('editor.newCoachingPoint');
+    if (typeof point !== 'string' || point.trim().length === 0) {
+      throw new Error('The new coaching point must be a non-empty string.');
+    }
+
+    this.updateDrill(drill.id, (current) => ({
+      ...current,
+      coachingPoints: [...(current.coachingPoints ?? []), point],
+    }));
+  }
+
+  protected onCoachingPointChanged(drill: Drill, index: number, event: Event): void {
+    const input = event.target;
+    if (!(input instanceof HTMLTextAreaElement)) {
+      return;
+    }
+
+    const currentPoint = this.trainingData()?.drills.find((candidate) => candidate.id === drill.id)
+      ?.coachingPoints?.[index];
+    if (currentPoint === undefined) {
+      input.value = '';
+      return;
+    }
+    if (input.value.trim().length === 0) {
+      input.value = currentPoint;
+      this.editorError.set({ key: 'editor.coachingPointRequired' });
+      return;
+    }
+    if (
+      !this.updateDrill(drill.id, (current) => ({
+        ...current,
+        coachingPoints: (current.coachingPoints ?? []).map((point, pointIndex) =>
+          pointIndex === index ? input.value : point,
+        ),
+      }))
+    ) {
+      input.value = currentPoint;
+    }
+  }
+
+  protected moveCoachingPoint(drill: Drill, index: number, direction: -1 | 1): void {
+    const points = [...(drill.coachingPoints ?? [])];
+    const destination = index + direction;
+    if (
+      this.isLoading ||
+      index < 0 ||
+      index >= points.length ||
+      destination < 0 ||
+      destination >= points.length
+    ) {
+      return;
+    }
+
+    const point = points[index];
+    const destinationPoint = points[destination];
+    if (point === undefined || destinationPoint === undefined) {
+      return;
+    }
+
+    points[index] = destinationPoint;
+    points[destination] = point;
+    this.updateDrill(drill.id, (current) => ({ ...current, coachingPoints: points }));
+  }
+
+  protected deleteCoachingPoint(drill: Drill, index: number): void {
+    if (this.isLoading) {
+      return;
+    }
+
+    this.updateDrill(drill.id, (current) => ({
+      ...current,
+      coachingPoints: (current.coachingPoints ?? []).filter(
+        (_, pointIndex) => pointIndex !== index,
+      ),
+    }));
+  }
+
   protected onDescriptionFormattingFailed(): void {
     this.editorError.set({ key: 'editor.formattingFailed' });
   }

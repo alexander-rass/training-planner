@@ -206,7 +206,7 @@ describe('App', () => {
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:new-training-data');
   });
 
-  it('edits a drill title in the working copy and keeps the selected plan drill', async () => {
+  it('edits a drill title and coaching point while keeping the selected plan drill', async () => {
     const fixture = await createAppFixture();
     const compiled = fixture.nativeElement as HTMLElement;
     const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
@@ -237,6 +237,12 @@ describe('App', () => {
     titleInput.value = 'Updated passing drill';
     titleInput.dispatchEvent(new Event('change'));
     fixture.detectChanges();
+    const coachingPoint = compiled.querySelector(
+      '.editor-coaching-point textarea',
+    ) as HTMLTextAreaElement;
+    coachingPoint.value = 'Communicate early.';
+    coachingPoint.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
     expect(
       (compiled.querySelector('.slot .select-control select') as HTMLSelectElement).value,
     ).toBe('drill-001');
@@ -258,6 +264,8 @@ describe('App', () => {
     expect(compiled.querySelector('.message-preview')?.textContent).toContain(
       'Updated passing drill',
     );
+    expect(compiled.querySelector('.message-preview')?.textContent).toContain('Communicate early.');
+    expect(compiled.querySelector('.message-preview')?.textContent).not.toContain('Keep moving.');
   });
 
   it('adds and deletes drills, clearing plan selections for a deleted drill', async () => {

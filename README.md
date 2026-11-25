@@ -11,6 +11,7 @@ For suggested next steps and context to carry into a new Copilot session, see [`
 - Choose drills and per-drill modification options for each stage. Stage order and default drill counts come from the data.
 - Preview and copy the plan as formatted WhatsApp text, including descriptions, coaching points, and selected modifications.
 - Add and delete drills, and edit their titles, available stages, and labels in an in-memory working copy.
+- Add, edit, reorder, and delete coaching points for each drill.
 - Start from an empty dataset without loading a file. Create drills and stages in either order; drills can be assigned to stages later. Export downloads the new dataset as `new-training-data-export.json`.
 - Open a data-editing hub with separate Drills and Stages areas; drill search, detail, and back navigation remain within Drills.
 - Manage stages by adding, renaming, reordering, and changing default drill counts. Deleting a stage shows affected drills and lets you reassign them, leave them unassigned, or cancel.

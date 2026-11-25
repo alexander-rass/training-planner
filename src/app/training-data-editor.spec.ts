@@ -146,6 +146,71 @@ describe('TrainingDataEditor', () => {
     expect(TestBed.inject(TrainingDataStore).hasUnsavedChanges()).toBe(false);
   });
 
+  it('adds, edits, reorders, and deletes coaching points while rejecting blank text', () => {
+    const fixture = createEditorFixture();
+    openEditorSection(fixture, 'drills');
+    const compiled = fixture.nativeElement as HTMLElement;
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(compiled.querySelectorAll('.editor-coaching-point')).toHaveLength(1);
+    const singlePointButtons = compiled.querySelectorAll(
+      '.editor-coaching-point .coaching-point-actions button',
+    );
+    expect((singlePointButtons[0] as HTMLButtonElement).disabled).toBe(true);
+    expect((singlePointButtons[1] as HTMLButtonElement).disabled).toBe(true);
+    expect((singlePointButtons[2] as HTMLButtonElement).textContent).toContain('Löschen');
+    expect((singlePointButtons[2] as HTMLButtonElement).getAttribute('aria-label')).toBe(
+      'Coaching-Punkt 1 löschen',
+    );
+    (compiled.querySelector('.editor-coaching-points .copy-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.editor-coaching-point')).toHaveLength(2);
+
+    const textareas = compiled.querySelectorAll('.editor-coaching-point textarea');
+    const addedPoint = textareas[1] as HTMLTextAreaElement;
+    const defaultText = addedPoint.value;
+    addedPoint.value = '   ';
+    addedPoint.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(addedPoint.value).toBe(defaultText);
+    expect(compiled.querySelector('.data-editor .message.error')?.textContent).toContain(
+      'darf nicht leer sein',
+    );
+
+    addedPoint.value = 'Look before receiving.';
+    addedPoint.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(TestBed.inject(TrainingDataStore).trainingData()?.drills[0]?.coachingPoints).toEqual([
+      'Keep **moving**.',
+      'Look before receiving.',
+    ]);
+
+    const moveEarlier = compiled.querySelector(
+      '.editor-coaching-point:last-child .coaching-point-actions button:first-child',
+    ) as HTMLButtonElement;
+    moveEarlier.click();
+    fixture.detectChanges();
+    expect(TestBed.inject(TrainingDataStore).trainingData()?.drills[0]?.coachingPoints).toEqual([
+      'Look before receiving.',
+      'Keep **moving**.',
+    ]);
+
+    (compiled.querySelector('.editor-coaching-point .delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(TestBed.inject(TrainingDataStore).trainingData()?.drills[0]?.coachingPoints).toEqual([
+      'Keep **moving**.',
+    ]);
+
+    (compiled.querySelector('.editor-coaching-point .delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(TestBed.inject(TrainingDataStore).trainingData()?.drills[0]?.coachingPoints).toEqual([]);
+    expect(compiled.querySelectorAll('.editor-coaching-point textarea')).toHaveLength(0);
+    expect(compiled.querySelector('.editor-coaching-points .editor-hint')?.textContent).toContain(
+      'Noch keine Coaching-Punkte',
+    );
+  });
+
   it('edits descriptions visually and saves emphasis and lists as Markdown', () => {
     const fixture = createEditorFixture();
     openEditorSection(fixture, 'drills');
@@ -236,6 +301,12 @@ describe('TrainingDataEditor', () => {
     const fixture = createEditorFixture();
     openEditorSection(fixture, 'stages');
     const compiled = fixture.nativeElement as HTMLElement;
+    const initialStageMoveButtons = compiled.querySelectorAll(
+      '.stage-editor-row[aria-label="Warm-up"] .stage-order-controls button',
+    );
+    expect((initialStageMoveButtons[0] as HTMLButtonElement).disabled).toBe(true);
+    expect((initialStageMoveButtons[1] as HTMLButtonElement).disabled).toBe(true);
+
     (compiled.querySelector('.stage-manager .copy-button') as HTMLButtonElement).click();
     fixture.detectChanges();
 
