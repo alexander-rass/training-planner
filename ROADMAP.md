@@ -14,6 +14,8 @@ Implemented:
 - Validate the JSON and its references when loading.
 - Filter drills by data-defined labels, select drills for stages, and choose per-drill modifications.
 - Add/delete drills and edit their titles, available stages, and label assignments in an in-memory working copy.
+- Manage stages: add and rename stages, change their order and default drill counts, and delete them with a usage warning and reassignment or unassignment.
+- Organize edit mode around a hub with dedicated Drills and Stages areas; drill search, detail, and return navigation remain separate.
 - Edit descriptions in a visual Markdown editor with bold, italic, bulleted-list, and numbered-list formatting. The editor displays formatted text and stores Markdown.
 - Search by title, description, coaching point, or label, and filter by stage or label. Open drills in a separate detail screen, with a back action that retains search filters.
 - Validate edits immediately and retain the prior valid data when a change is rejected. Reload the selected preloaded dataset explicitly, including after edits.
@@ -24,11 +26,11 @@ Implemented:
 
 Important current constraints:
 
-- Training-data editing is still an initial increment: drill creation/deletion, titles, descriptions, stage availability, and drill label assignments are editable. Coaching points, labels, stages, and modifications are not yet editable.
+- Training-data editing is still an initial increment: drill creation/deletion, titles, descriptions, stage availability, stage catalog entries, and drill label assignments are editable. Coaching points, labels, and modifications are not yet editable.
 - Edits and the selected plan exist only in memory. Refreshing loses both. Export downloads the working copy; it does not overwrite the source file or store data in the browser.
 - Replacing a dataset warns before discarding edits that have not been exported. Deleting a drill clears any selected plan slots for it.
-- A drill may be unassigned from all stages. Creating a new dataset without loading JSON is deferred until the stage editor can make a blank dataset useful.
-- Stage order/default drill counts come from the data. The app does not yet edit the stage catalog or provide a diagram editor.
+- A drill may be unassigned from all stages. Creating a new dataset without loading JSON and exporting it under a new filename are not yet implemented; these are the next planned increment.
+- Stage order/default drill counts can be edited in the stage manager. The app does not yet provide a diagram editor.
 - Training content remains in the language authored in its JSON file. Only the app interface is localized.
 - Markdown is rendered for descriptions/coaching points, but raw HTML and Markdown images are not rendered. Do not bypass Angular's normal HTML sanitization or load arbitrary external images.
 - The current MIT intent includes the app, handcrafted training data, and the edited AI-generated icon. Third-party dependencies and third-party names/logos/material may have separate rights.
@@ -45,11 +47,10 @@ Before adding features, use the app to create and share a few actual sessions. R
 
 The editor is a separate mode and works on an in-memory copy. Continue in small increments:
 
-1. Add, edit, reorder, and delete coaching points.
-2. Add label management: create, rename, and delete labels; assign them to drills; and choose main-filter labels.
-3. Add modification management: create, edit, and delete general and drill-specific modifications and their options, while keeping stable IDs and valid references.
-4. Add stage management: create, rename, reorder, and delete stages; edit default drill counts; and keep stage references valid.
-5. Allow creating a blank `schemaVersion: 1` working copy from the welcome screen. Guide the trainer to create catalog entries before drills; do not require a preloaded or local JSON file.
+1. Allow creating a blank `schemaVersion: 1` working copy from the welcome screen and exporting it under a new filename. Guide the trainer to create stages before drills; do not require a preloaded or local JSON file.
+2. Add, edit, reorder, and delete coaching points.
+3. Add label management: create, rename, and delete labels; assign them to drills; and choose main-filter labels.
+4. Add modification management: create, edit, and delete general and drill-specific modifications and their options, while keeping stable IDs and valid references.
 
 When deleting an in-use label, stage, or modification, warn with the reference count and a short sample when the list is long. Let the trainer cancel or reassign references before deletion. For modifications, reassignment may also require mapping selected options. Keep the selected plan in memory where possible, but clear entries that are no longer valid; do not add plan or edit persistence.
 

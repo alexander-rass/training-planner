@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 import deTranslations from '../../public/i18n/de.json';
@@ -31,8 +31,47 @@ describe('TrainingDataEditor', () => {
     return fixture;
   }
 
+  function openEditorSection(
+    fixture: ComponentFixture<TrainingDataEditor>,
+    section: 'drills' | 'stages',
+  ) {
+    const compiled = fixture.nativeElement as HTMLElement;
+    (compiled.querySelector(`.${section}-section-card`) as HTMLButtonElement).click();
+    fixture.detectChanges();
+  }
+
+  it('presents editing areas separately and navigates back to the hub', () => {
+    const fixture = createEditorFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelectorAll('.editor-section-card')).toHaveLength(2);
+    expect(compiled.querySelector('.stage-manager-page')).toBeNull();
+    expect(compiled.querySelector('.editor-browser-page')).toBeNull();
+
+    openEditorSection(fixture, 'stages');
+    expect(compiled.querySelector('.stage-manager-page')).not.toBeNull();
+    expect(compiled.querySelector('.editor-browser-page')).toBeNull();
+    (
+      compiled.querySelector('.stage-manager-page .editor-page-heading button') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    openEditorSection(fixture, 'drills');
+    expect(compiled.querySelector('.editor-browser-page')).not.toBeNull();
+    expect(compiled.querySelector('.stage-manager-page')).toBeNull();
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (
+      compiled.querySelector('.editor-page-navigation button:last-child') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.editor-section-card')).toHaveLength(2);
+    expect(compiled.querySelector('.editor-form')).toBeNull();
+  });
+
   it('searches and filters drills while preserving filters when returning from drill details', () => {
     const fixture = createEditorFixture();
+    openEditorSection(fixture, 'drills');
     const compiled = fixture.nativeElement as HTMLElement;
     const searchInput = compiled.querySelector('input[type="search"]') as HTMLInputElement;
 
@@ -63,7 +102,9 @@ describe('TrainingDataEditor', () => {
     fixture.detectChanges();
 
     expect(compiled.querySelectorAll('.editor-drill-choice')).toHaveLength(1);
-    expect(compiled.querySelector('.editor-results-heading')?.textContent).toContain('1 von 2');
+    expect(
+      compiled.querySelector('.editor-browser > .editor-results-heading')?.textContent,
+    ).toContain('1 von 2');
 
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -86,6 +127,7 @@ describe('TrainingDataEditor', () => {
 
   it('rejects invalid title edits with actionable feedback and keeps valid data', () => {
     const fixture = createEditorFixture();
+    openEditorSection(fixture, 'drills');
     const compiled = fixture.nativeElement as HTMLElement;
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -106,6 +148,7 @@ describe('TrainingDataEditor', () => {
 
   it('edits descriptions visually and saves emphasis and lists as Markdown', () => {
     const fixture = createEditorFixture();
+    openEditorSection(fixture, 'drills');
     const compiled = fixture.nativeElement as HTMLElement;
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -141,6 +184,7 @@ describe('TrainingDataEditor', () => {
 
   it('preserves the cursor position when a formatting button receives focus', () => {
     const fixture = createEditorFixture();
+    openEditorSection(fixture, 'drills');
     const compiled = fixture.nativeElement as HTMLElement;
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -186,5 +230,181 @@ describe('TrainingDataEditor', () => {
       '<span style="font-weight: 700">Bold</span> <span style="font-style: italic">italic</span>';
 
     expect(markdownFromEditableContent(editable)).toBe('**Bold** *italic*');
+  });
+
+  it('creates, edits, reorders, and validates stages', () => {
+    const fixture = createEditorFixture();
+    openEditorSection(fixture, 'stages');
+    const compiled = fixture.nativeElement as HTMLElement;
+    (compiled.querySelector('.stage-manager .copy-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const store = TestBed.inject(TrainingDataStore);
+    let stage = store
+      .trainingData()
+      ?.catalog.stages.find((candidate) => candidate.id === 'new-stage');
+    expect(stage).toMatchObject({ label: 'Neue Phase', order: 2, defaultDrillCount: 1 });
+
+    const stageRow = compiled.querySelector(
+      '.stage-editor-row[aria-label="Neue Phase"]',
+    ) as HTMLElement;
+    const inputs = stageRow.querySelectorAll('input');
+    (inputs[0] as HTMLInputElement).value = 'Finishing';
+    inputs[0].dispatchEvent(new Event('change'));
+    (inputs[1] as HTMLInputElement).value = '3';
+    inputs[1].dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    stage = store.trainingData()?.catalog.stages.find((candidate) => candidate.id === 'new-stage');
+    expect(stage).toMatchObject({ label: 'Finishing', order: 2, defaultDrillCount: 3 });
+
+    const updatedRow = compiled.querySelector(
+      '.stage-editor-row[aria-label="Finishing"]',
+    ) as HTMLElement;
+    (updatedRow.querySelector('.stage-order-controls button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(
+      store
+        .trainingData()
+        ?.catalog.stages.slice()
+        .sort((left, right) => left.order - right.order)
+        .map(({ id, order }) => ({ id, order })),
+    ).toEqual([
+      { id: 'new-stage', order: 1 },
+      { id: 'warmup', order: 2 },
+    ]);
+
+    const reorderedRow = compiled.querySelector(
+      '.stage-editor-row[aria-label="Finishing"]',
+    ) as HTMLElement;
+    const countInput = reorderedRow.querySelector('input[type="number"]') as HTMLInputElement;
+    countInput.value = '-1';
+    countInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(countInput.value).toBe('3');
+    expect(compiled.querySelector('.data-editor .message.error')?.textContent).toContain(
+      'nicht-negative ganze Zahl',
+    );
+    expect(
+      store.trainingData()?.catalog.stages.find((candidate) => candidate.id === 'new-stage'),
+    ).toMatchObject({ defaultDrillCount: 3 });
+  });
+
+  it('warns before deleting a used stage and supports cancellation or reassignment', () => {
+    const fixture = createEditorFixture();
+    openEditorSection(fixture, 'stages');
+    const compiled = fixture.nativeElement as HTMLElement;
+    (compiled.querySelector('.stage-manager .copy-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const warmupRow = compiled.querySelector(
+      '.stage-editor-row[aria-label="Warm-up"]',
+    ) as HTMLElement;
+    (warmupRow.querySelector('.delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const store = TestBed.inject(TrainingDataStore);
+    expect(compiled.querySelector('.stage-delete-panel [role="alert"]')?.textContent).toContain(
+      'Warm-up',
+    );
+    expect(compiled.querySelector('.stage-delete-panel')?.textContent).toContain('Passing for U11');
+    expect(compiled.querySelector('.stage-delete-panel')?.textContent).toContain('Passing drill');
+    expect(store.trainingData()?.catalog.stages.some((stage) => stage.id === 'warmup')).toBe(true);
+
+    const reassignment = compiled.querySelector('.stage-delete-panel select') as HTMLSelectElement;
+    reassignment.value = 'new-stage';
+    reassignment.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    (compiled.querySelector('.stage-delete-actions .text-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(store.trainingData()?.catalog.stages.some((stage) => stage.id === 'warmup')).toBe(true);
+
+    (
+      compiled.querySelector(
+        '.stage-editor-row[aria-label="Warm-up"] .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    const confirmedReassignment = compiled.querySelector(
+      '.stage-delete-panel select',
+    ) as HTMLSelectElement;
+    confirmedReassignment.value = 'new-stage';
+    confirmedReassignment.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    (compiled.querySelector('.stage-delete-actions .delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(store.trainingData()?.catalog.stages.map((stage) => stage.id)).toEqual(['new-stage']);
+    expect(store.trainingData()?.drills.map((drill) => drill.availableStageIds)).toEqual([
+      ['new-stage'],
+      ['new-stage'],
+    ]);
+    expect(compiled.querySelector('.stage-delete-panel')).toBeNull();
+  });
+
+  it('shows a usage count and two examples when many drills use a stage', () => {
+    const fixture = createEditorFixture();
+    openEditorSection(fixture, 'stages');
+    const compiled = fixture.nativeElement as HTMLElement;
+    const store = TestBed.inject(TrainingDataStore);
+    const data = store.trainingData();
+    if (!data?.drills[0]) {
+      throw new Error('The test training data must contain a drill.');
+    }
+
+    const firstDrill = data.drills[0];
+    const error = store.applyChange((current) => ({
+      ...current,
+      drills: [
+        ...current.drills,
+        ...Array.from({ length: 3 }, (_, index) => ({
+          ...firstDrill,
+          id: `extra-drill-${index + 1}`,
+          title: `Extra drill ${index + 1}`,
+        })),
+      ],
+    }));
+    expect(error).toBeNull();
+    fixture.detectChanges();
+
+    (
+      compiled.querySelector(
+        '.stage-editor-row[aria-label="Warm-up"] .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('.stage-delete-panel [role="alert"]')?.textContent).toContain(
+      '5 Übungen',
+    );
+    expect(compiled.querySelectorAll('.stage-delete-panel li')).toHaveLength(2);
+    expect(compiled.querySelector('.stage-delete-panel')?.textContent).not.toContain(
+      'Extra drill 1',
+    );
+  });
+
+  it('allows deleting the last used stage and leaves its drills unassigned', () => {
+    const fixture = createEditorFixture();
+    openEditorSection(fixture, 'stages');
+    const compiled = fixture.nativeElement as HTMLElement;
+    (
+      compiled.querySelector(
+        '.stage-editor-row[aria-label="Warm-up"] .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    const reassignment = compiled.querySelector('.stage-delete-panel select') as HTMLSelectElement;
+    expect(reassignment.options).toHaveLength(1);
+    expect(reassignment.value).toBe('');
+    (compiled.querySelector('.stage-delete-actions .delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const data = TestBed.inject(TrainingDataStore).trainingData();
+    expect(data?.catalog.stages).toEqual([]);
+    expect(data?.drills.map((drill) => drill.availableStageIds)).toEqual([[], []]);
+    expect(compiled.querySelector('.stage-manager-page .editor-hint')?.textContent).toContain(
+      'keine Phasen definiert',
+    );
   });
 });

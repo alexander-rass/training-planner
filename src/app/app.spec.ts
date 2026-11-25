@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 import { vi } from 'vitest';
@@ -19,6 +19,15 @@ async function createAppFixture() {
   fixture.detectChanges();
   await fixture.whenStable();
   return fixture;
+}
+
+function openEditorSection(fixture: ComponentFixture<App>, section: 'drills' | 'stages'): void {
+  const compiled = fixture.nativeElement as HTMLElement;
+  const sectionButton = compiled.querySelector(
+    `.editor-section-card.${section}-section-card`,
+  ) as HTMLButtonElement;
+  sectionButton.click();
+  fixture.detectChanges();
 }
 
 function translationKeys(value: object, prefix = ''): string[] {
@@ -122,6 +131,7 @@ describe('App', () => {
     ) as HTMLButtonElement;
     editButton.click();
     fixture.detectChanges();
+    openEditorSection(fixture, 'drills');
 
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -175,6 +185,7 @@ describe('App', () => {
     ) as HTMLButtonElement;
     editButton.click();
     fixture.detectChanges();
+    openEditorSection(fixture, 'drills');
 
     (compiled.querySelector('.editor-actions button') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -223,6 +234,7 @@ describe('App', () => {
     ) as HTMLButtonElement;
     editButton.click();
     fixture.detectChanges();
+    openEditorSection(fixture, 'drills');
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
     const titleInput = compiled.querySelector(
@@ -281,6 +293,7 @@ describe('App', () => {
     ) as HTMLButtonElement;
     editButton.click();
     fixture.detectChanges();
+    openEditorSection(fixture, 'drills');
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
     const titleInput = compiled.querySelector(
@@ -318,6 +331,7 @@ describe('App', () => {
     ) as HTMLButtonElement;
     editButton.click();
     fixture.detectChanges();
+    openEditorSection(fixture, 'drills');
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
     const titleInput = compiled.querySelector(
@@ -348,6 +362,7 @@ describe('App', () => {
     ) as HTMLButtonElement;
     enterEditButton.click();
     fixture.detectChanges();
+    openEditorSection(fixture, 'drills');
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(
@@ -373,6 +388,7 @@ describe('App', () => {
     ) as HTMLButtonElement;
     editButton.click();
     fixture.detectChanges();
+    openEditorSection(fixture, 'drills');
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
     const titleInput = compiled.querySelector(
@@ -400,6 +416,7 @@ describe('App', () => {
     ) as HTMLButtonElement;
     reopenEditor.click();
     fixture.detectChanges();
+    openEditorSection(fixture, 'drills');
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(
@@ -446,6 +463,7 @@ describe('App', () => {
     ) as HTMLButtonElement;
     editButton.click();
     fixture.detectChanges();
+    openEditorSection(fixture, 'drills');
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
 
@@ -463,6 +481,74 @@ describe('App', () => {
     fixture.detectChanges();
     expect((availableStageInputs[1] as HTMLInputElement).checked).toBe(false);
     expect(compiled.querySelector('.data-editor .message.error')).toBeNull();
+  });
+
+  it('clears a deleted stage from the plan while retaining selections in reassigned stages', async () => {
+    const data = parseTrainingData(JSON.parse(trainingDataJson) as unknown);
+    const dataWithAnotherStage = {
+      ...data,
+      catalog: {
+        ...data.catalog,
+        stages: [
+          ...data.catalog.stages,
+          { id: 'game', label: 'Game', order: 2, defaultDrillCount: 1 },
+        ],
+      },
+      drills: data.drills.map((drill) =>
+        drill.id === 'drill-001' ? { ...drill, availableStageIds: ['warmup', 'game'] } : drill,
+      ),
+    };
+
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = {
+      name: 'pilot-data.json',
+      text: async () => JSON.stringify(dataWithAnotherStage),
+    };
+    Object.defineProperty(fileInput, 'files', { configurable: true, value: [file] });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const planDrillSelects = compiled.querySelectorAll('.stage .slot > .select-control select');
+    for (const select of planDrillSelects) {
+      (select as HTMLSelectElement).value = 'drill-001';
+      select.dispatchEvent(new Event('change'));
+    }
+    fixture.detectChanges();
+
+    const editButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Daten bearbeiten'),
+    ) as HTMLButtonElement;
+    editButton.click();
+    fixture.detectChanges();
+    openEditorSection(fixture, 'stages');
+    (
+      compiled.querySelector(
+        '.stage-editor-row[aria-label="Warm-up"] .delete-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    const reassignment = compiled.querySelector('.stage-delete-panel select') as HTMLSelectElement;
+    reassignment.value = 'game';
+    reassignment.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    (compiled.querySelector('.stage-delete-actions .delete-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const returnButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
+      button.textContent?.includes('Zurück zum Planer'),
+    ) as HTMLButtonElement;
+    returnButton.click();
+    fixture.detectChanges();
+
+    expect(compiled.querySelectorAll('.stage')).toHaveLength(1);
+    expect(compiled.querySelector('.stage h2')?.textContent).toBe('Game');
+    expect(
+      (compiled.querySelector('.stage .slot .select-control select') as HTMLSelectElement).value,
+    ).toBe('drill-001');
   });
 
   it('loads a selected named dataset from its deployed data file', async () => {

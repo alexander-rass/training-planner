@@ -14,6 +14,8 @@ import { Drill, StageDefinition, TrainingData, TrainingDataValidationError } fro
 import { TrainingDataStore } from './training-data-store';
 import { TranslationMessage } from './translation-message';
 
+type EditorSection = 'home' | 'drills' | 'stages';
+
 @Component({
   selector: 'app-training-data-editor',
   imports: [MarkdownDescriptionEditor, TranslatePipe],
@@ -31,20 +33,27 @@ export class TrainingDataEditor implements OnChanges {
   protected readonly trainingData = this.trainingDataStore.trainingData;
   protected readonly hasUnsavedChanges = this.trainingDataStore.hasUnsavedChanges;
   protected readonly selectedEditorDrillId = signal<string | null>(null);
+  protected readonly editorSection = signal<EditorSection>('home');
   protected readonly editorSearchQuery = signal('');
   protected readonly editorStageFilterId = signal('');
   protected readonly editorLabelFilterId = signal('');
   protected readonly editorError = signal<TranslationMessage | null>(null);
+  protected readonly pendingStageDeletionId = signal<string | null>(null);
+  protected readonly stageReassignmentId = signal('');
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['resetToken']) {
+      this.editorSection.set('home');
       this.selectedEditorDrillId.set(null);
       this.editorSearchQuery.set('');
       this.editorStageFilterId.set('');
       this.editorLabelFilterId.set('');
       this.editorError.set(null);
+      this.cancelStageDeletion();
     } else if (changes['isEditing'] && !this.isEditing) {
+      this.editorSection.set('home');
       this.selectedEditorDrillId.set(null);
+      this.cancelStageDeletion();
     }
   }
 
@@ -124,6 +133,180 @@ export class TrainingDataEditor implements OnChanges {
     this.editorSearchQuery.set('');
     this.editorStageFilterId.set('');
     this.editorLabelFilterId.set('');
+  }
+
+  protected openEditorSection(section: Exclude<EditorSection, 'home'>): void {
+    if (this.isLoading) {
+      return;
+    }
+
+    this.editorError.set(null);
+    this.selectedEditorDrillId.set(null);
+    this.editorSection.set(section);
+    if (section !== 'stages') {
+      this.cancelStageDeletion();
+    }
+  }
+
+  protected returnToEditorHome(): void {
+    this.editorSection.set('home');
+    this.selectedEditorDrillId.set(null);
+    this.cancelStageDeletion();
+  }
+
+  protected addStage(): void {
+    const data = this.trainingData();
+    if (!data || this.isLoading) {
+      return;
+    }
+
+    const label = this.translate.instant('editor.newStageLabel');
+    if (typeof label !== 'string') {
+      throw new Error('The new stage label must be a string.');
+    }
+
+    const stages = this.stages().map((stage, index) => ({ ...stage, order: index + 1 }));
+    const existingIds = new Set(stages.map((stage) => stage.id));
+    let id = 'new-stage';
+    let suffix = 2;
+    while (existingIds.has(id)) {
+      id = `new-stage-${suffix}`;
+      suffix += 1;
+    }
+
+    this.applyTrainingDataChange((current) => ({
+      ...current,
+      catalog: {
+        ...current.catalog,
+        stages: [...stages, { id, label, order: stages.length + 1, defaultDrillCount: 1 }],
+      },
+    }));
+  }
+
+  protected onStageLabelChanged(stage: StageDefinition, event: Event): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+    if (input.value.trim().length === 0) {
+      input.value = stage.label;
+      this.editorError.set({ key: 'editor.stageLabelRequired' });
+      return;
+    }
+    if (!this.updateStage(stage.id, (current) => ({ ...current, label: input.value }))) {
+      input.value = stage.label;
+    }
+  }
+
+  protected onStageDefaultDrillCountChanged(stage: StageDefinition, event: Event): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+
+    const count = Number(input.value);
+    if (!input.value.trim() || !Number.isSafeInteger(count) || count < 0) {
+      input.value = String(stage.defaultDrillCount);
+      this.editorError.set({ key: 'editor.invalidStageDrillCount' });
+      return;
+    }
+    if (!this.updateStage(stage.id, (current) => ({ ...current, defaultDrillCount: count }))) {
+      input.value = String(stage.defaultDrillCount);
+    }
+  }
+
+  protected moveStage(stageId: string, direction: -1 | 1): void {
+    const stages = this.stages();
+    const index = stages.findIndex((stage) => stage.id === stageId);
+    const destination = index + direction;
+    if (index < 0 || destination < 0 || destination >= stages.length || this.isLoading) {
+      return;
+    }
+
+    [stages[index], stages[destination]] = [stages[destination], stages[index]];
+    const reorderedStages = stages.map((stage, order) => ({ ...stage, order: order + 1 }));
+    this.applyTrainingDataChange((data) => ({
+      ...data,
+      catalog: { ...data.catalog, stages: reorderedStages },
+    }));
+  }
+
+  protected drillsUsingStage(stageId: string): Drill[] {
+    return (
+      this.trainingData()?.drills.filter((drill) => drill.availableStageIds.includes(stageId)) ?? []
+    );
+  }
+
+  protected requestDeleteStage(stage: StageDefinition): void {
+    if (this.isLoading) {
+      return;
+    }
+    this.editorError.set(null);
+    this.pendingStageDeletionId.set(stage.id);
+    this.stageReassignmentId.set('');
+  }
+
+  protected onStageReassignmentChanged(event: Event): void {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const stageId = this.pendingStageDeletionId();
+    const validTarget =
+      !select.value ||
+      this.trainingData()?.catalog.stages.some(
+        (stage) => stage.id === select.value && stage.id !== stageId,
+      );
+    if (validTarget) {
+      this.stageReassignmentId.set(select.value);
+    } else {
+      select.value = this.stageReassignmentId();
+    }
+  }
+
+  protected cancelStageDeletion(): void {
+    this.pendingStageDeletionId.set(null);
+    this.stageReassignmentId.set('');
+  }
+
+  protected confirmDeleteStage(stage: StageDefinition): void {
+    if (this.pendingStageDeletionId() !== stage.id || this.isLoading) {
+      return;
+    }
+
+    const targetStageId = this.stageReassignmentId();
+    const remainingStages = this.stages()
+      .filter((candidate) => candidate.id !== stage.id)
+      .map((candidate, index) => ({ ...candidate, order: index + 1 }));
+    if (targetStageId && !remainingStages.some((candidate) => candidate.id === targetStageId)) {
+      this.editorError.set({ key: 'editor.stageReassignmentUnavailable' });
+      return;
+    }
+
+    const applied = this.applyTrainingDataChange((data) => ({
+      ...data,
+      catalog: { ...data.catalog, stages: remainingStages },
+      drills: data.drills.map((drill) => {
+        if (!drill.availableStageIds.includes(stage.id)) {
+          return drill;
+        }
+
+        const availableStageIds = drill.availableStageIds.filter((id) => id !== stage.id);
+        if (targetStageId && !availableStageIds.includes(targetStageId)) {
+          availableStageIds.push(targetStageId);
+        }
+        return { ...drill, availableStageIds };
+      }),
+    }));
+    if (!applied) {
+      return;
+    }
+
+    if (this.editorStageFilterId() === stage.id) {
+      this.editorStageFilterId.set('');
+    }
+    this.cancelStageDeletion();
   }
 
   protected returnToDrillSearch(): void {
@@ -254,6 +437,19 @@ export class TrainingDataEditor implements OnChanges {
     return this.applyTrainingDataChange((data) => ({
       ...data,
       drills: data.drills.map((drill) => (drill.id === drillId ? update(drill) : drill)),
+    }));
+  }
+
+  private updateStage(
+    stageId: string,
+    update: (stage: StageDefinition) => StageDefinition,
+  ): boolean {
+    return this.applyTrainingDataChange((data) => ({
+      ...data,
+      catalog: {
+        ...data.catalog,
+        stages: data.catalog.stages.map((stage) => (stage.id === stageId ? update(stage) : stage)),
+      },
     }));
   }
 
