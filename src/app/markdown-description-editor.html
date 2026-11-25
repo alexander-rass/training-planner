@@ -1,0 +1,58 @@
+<div class="markdown-editor">
+  <div
+    class="markdown-editor-toolbar"
+    role="toolbar"
+    [attr.aria-label]="'editor.formatting' | translate"
+  >
+    <button
+      class="text-button"
+      type="button"
+      [disabled]="disabled"
+      [attr.aria-pressed]="boldActive()"
+      (pointerdown)="preserveSelection($event)"
+      (click)="applyFormatting('bold')"
+    >
+      {{ 'editor.bold' | translate }}
+    </button>
+    <button
+      class="text-button"
+      type="button"
+      [disabled]="disabled"
+      [attr.aria-pressed]="italicActive()"
+      (pointerdown)="preserveSelection($event)"
+      (click)="applyFormatting('italic')"
+    >
+      {{ 'editor.italic' | translate }}
+    </button>
+    <button
+      class="text-button"
+      type="button"
+      [disabled]="disabled"
+      (pointerdown)="preserveSelection($event)"
+      (click)="applyFormatting('insertUnorderedList')"
+    >
+      {{ 'editor.bulletList' | translate }}
+    </button>
+    <button
+      class="text-button"
+      type="button"
+      [disabled]="disabled"
+      (pointerdown)="preserveSelection($event)"
+      (click)="applyFormatting('insertOrderedList')"
+    >
+      {{ 'editor.numberedList' | translate }}
+    </button>
+  </div>
+  <div
+    #surface
+    class="markdown-editor-surface markdown-content"
+    role="textbox"
+    aria-multiline="true"
+    [attr.aria-label]="'editor.descriptionAria' | translate"
+    [attr.contenteditable]="disabled ? 'false' : 'true'"
+    [innerHTML]="renderedHtml()"
+    (input)="onInput()"
+    (blur)="onBlur()"
+    (paste)="onPaste($event)"
+  ></div>
+</div>

@@ -7,16 +7,20 @@ import { marked, Renderer } from 'marked';
 })
 export class MarkdownPipe implements PipeTransform {
   transform(markdown: string | null | undefined): string {
-    if (!markdown) {
-      return '';
-    }
-
-    const renderer = new Renderer();
-    renderer.image = ({ text }) => escapeHtml(text);
-    renderer.html = () => '';
-
-    return marked.parse(markdown, { async: false, breaks: true, renderer });
+    return renderMarkdown(markdown);
   }
+}
+
+export function renderMarkdown(markdown: string | null | undefined): string {
+  if (!markdown) {
+    return '';
+  }
+
+  const renderer = new Renderer();
+  renderer.image = ({ text }) => escapeHtml(text);
+  renderer.html = () => '';
+
+  return marked.parse(markdown, { async: false, breaks: true, renderer });
 }
 
 function escapeHtml(text: string): string {

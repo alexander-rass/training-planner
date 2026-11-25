@@ -9,13 +9,14 @@ import {
   SimpleChanges,
 } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { MarkdownDescriptionEditor } from './markdown-description-editor';
 import { Drill, StageDefinition, TrainingData, TrainingDataValidationError } from './training-data';
 import { TrainingDataStore } from './training-data-store';
 import { TranslationMessage } from './translation-message';
 
 @Component({
   selector: 'app-training-data-editor',
-  imports: [TranslatePipe],
+  imports: [MarkdownDescriptionEditor, TranslatePipe],
   templateUrl: './training-data-editor.html',
 })
 export class TrainingDataEditor implements OnChanges {
@@ -211,6 +212,14 @@ export class TrainingDataEditor implements OnChanges {
     if (!this.updateDrill(drillId, (drill) => ({ ...drill, title: input.value }))) {
       input.value = this.trainingData()?.drills.find((drill) => drill.id === drillId)?.title ?? '';
     }
+  }
+
+  protected onDrillDescriptionChanged(drillId: string, markdown: string): void {
+    this.updateDrill(drillId, (drill) => ({ ...drill, descriptionMarkdown: markdown }));
+  }
+
+  protected onDescriptionFormattingFailed(): void {
+    this.editorError.set({ key: 'editor.formattingFailed' });
   }
 
   protected onDrillStageToggled(drill: Drill, stageId: string, event: Event): void {

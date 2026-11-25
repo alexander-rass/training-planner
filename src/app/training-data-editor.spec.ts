@@ -3,6 +3,8 @@ import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 import deTranslations from '../../public/i18n/de.json';
 import enTranslations from '../../public/i18n/en.json';
+import { vi } from 'vitest';
+import { markdownFromEditableContent } from './markdown-description-editor';
 import { TrainingDataEditor } from './training-data-editor';
 import { trainingDataJson } from './training-data-test-fixtures';
 import { TrainingDataStore } from './training-data-store';
@@ -100,5 +102,89 @@ describe('TrainingDataEditor', () => {
     );
     expect(compiled.querySelector('.unsaved-status')).toBeNull();
     expect(TestBed.inject(TrainingDataStore).hasUnsavedChanges()).toBe(false);
+  });
+
+  it('edits descriptions visually and saves emphasis and lists as Markdown', () => {
+    const fixture = createEditorFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const surface = compiled.querySelector('.markdown-editor-surface') as HTMLDivElement;
+
+    expect(surface.querySelector('strong')?.textContent).toBe('follow your pass');
+    expect(surface.textContent).not.toContain('**');
+
+    surface.innerHTML =
+      '<p>Pass <strong>quickly</strong> and <em>look</em>.</p><ul><li>Move</li></ul><ol><li>Observe</li></ol>';
+    surface.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(TestBed.inject(TrainingDataStore).trainingData()?.drills[0]?.descriptionMarkdown).toBe(
+      'Pass **quickly** and *look*.\n\n- Move\n\n1. Observe',
+    );
+    expect(surface.querySelector('strong')?.textContent).toBe('quickly');
+    expect(surface.querySelector('em')?.textContent).toBe('look');
+    expect(surface.querySelector('ul li')?.textContent).toBe('Move');
+    expect(surface.querySelector('ol li')?.textContent).toBe('Observe');
+    expect(surface.textContent).not.toContain('**');
+  });
+
+  it('escapes Markdown syntax typed as ordinary text', () => {
+    const editable = document.createElement('div');
+    editable.textContent =
+      'Literal **stars** and _underscores_.\n1. not a list\n- not a bullet\n# not a heading\n![image](url)';
+
+    expect(markdownFromEditableContent(editable)).toBe(
+      'Literal \\*\\*stars\\*\\* and \\_underscores\\_.\n1\\. not a list\n\\- not a bullet\n\\# not a heading\n\\!\\[image\\]\\(url\\)',
+    );
+  });
+
+  it('preserves the cursor position when a formatting button receives focus', () => {
+    const fixture = createEditorFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const surface = compiled.querySelector('.markdown-editor-surface') as HTMLDivElement;
+    const textNode = surface.querySelector('p')?.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(textNode, 2);
+    range.collapse(true);
+    const selection = document.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    document.dispatchEvent(new Event('selectionchange'));
+
+    const originalDescriptor = Object.getOwnPropertyDescriptor(document, 'execCommand');
+    const execCommand = vi.fn(() => {
+      expect(document.getSelection()?.anchorNode).toBe(textNode);
+      expect(document.getSelection()?.anchorOffset).toBe(2);
+      return true;
+    });
+    Object.defineProperty(document, 'execCommand', { configurable: true, value: execCommand });
+
+    try {
+      const bulletButton = compiled.querySelectorAll(
+        '.markdown-editor-toolbar button',
+      )[2] as HTMLButtonElement;
+      bulletButton.focus();
+      bulletButton.click();
+
+      expect(execCommand).toHaveBeenCalledWith('insertUnorderedList');
+    } finally {
+      if (originalDescriptor) {
+        Object.defineProperty(document, 'execCommand', originalDescriptor);
+      } else {
+        Reflect.deleteProperty(document, 'execCommand');
+      }
+    }
+  });
+
+  it('preserves emphasis when the browser uses styled spans', () => {
+    const editable = document.createElement('div');
+    editable.innerHTML =
+      '<span style="font-weight: 700">Bold</span> <span style="font-style: italic">italic</span>';
+
+    expect(markdownFromEditableContent(editable)).toBe('**Bold** *italic*');
   });
 });

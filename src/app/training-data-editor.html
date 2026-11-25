@@ -47,6 +47,16 @@
           />
         </label>
 
+        <div class="editor-field">
+          <span>{{ 'editor.descriptionLabel' | translate }}</span>
+          <app-markdown-description-editor
+            [markdown]="drill.descriptionMarkdown"
+            [disabled]="isLoading"
+            (markdownChange)="onDrillDescriptionChanged(drill.id, $event)"
+            (formattingFailed)="onDescriptionFormattingFailed()"
+          />
+        </div>
+
         <fieldset class="editor-choice-group">
           <legend>{{ 'editor.availableStages' | translate }}</legend>
           @for (stage of stages(); track stage.id) {

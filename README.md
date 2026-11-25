@@ -11,6 +11,7 @@ For suggested next steps and context to carry into a new Copilot session, see [`
 - Choose drills and per-drill modification options for each stage. Stage order and default drill counts come from the data.
 - Preview and copy the plan as formatted WhatsApp text, including descriptions, coaching points, and selected modifications.
 - Add and delete drills, and edit their titles, available stages, and labels in an in-memory working copy.
+- Edit descriptions in a visual Markdown editor with bold, italic, numbered-list, and bullet-list formatting. The editor displays formatted text while storing Markdown in the JSON.
 - Search by title, description, coaching point, or label, and filter by stage or label while editing. Open a drill in a separate detail screen and return to the search with its filters retained. Each data change is validated immediately; rejected changes leave the previous valid data available for export.
 - Download the current training data as JSON. The loaded source file is never overwritten; refresh clears edits, and replacing or reloading a dataset warns about edits that have not been exported.
 - Use the interface in German or English. On each startup, it uses the first supported language in the browser's preferred-language list and falls back to German. The choice is not saved.
