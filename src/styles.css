@@ -691,6 +691,90 @@ app-root .delete-button {
   color: #782f29;
 }
 
+@media (max-width: 53rem) {
+  app-root .section-heading,
+  app-root .editor-page-heading,
+  app-root .editor-results-heading,
+  app-root .editor-form-heading,
+  app-root .modification-manager > .editor-results-heading,
+  app-root .stage-manager > .editor-results-heading,
+  app-root .label-manager > .editor-results-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  app-root .section-heading {
+    flex-direction: column;
+  }
+
+  app-root .editor-page-heading,
+  app-root .editor-results-heading,
+  app-root .editor-form-heading {
+    gap: 0.75rem;
+  }
+
+  app-root .editor-page-heading,
+  app-root .editor-results-heading {
+    width: 100%;
+  }
+
+  app-root .editor-results-heading {
+    flex-direction: row;
+  }
+
+  app-root .label-editor-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  app-root .stage-order-controls {
+    align-items: flex-start;
+  }
+
+  app-root .stage-delete-actions,
+  app-root .label-delete-actions,
+  app-root .modification-delete-actions {
+    justify-content: flex-start;
+  }
+
+  app-root .modification-browser-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  app-root .editor-browser-filters,
+  app-root .editor-choice-group,
+  app-root .modification-options,
+  app-root .modification-option-mappings,
+  app-root .editor-coaching-point,
+  app-root .editor-page-heading,
+  app-root .editor-form,
+  app-root .modification-detail-page,
+  app-root .data-editor {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 43.75rem) {
+  app-root .label-editor-fields,
+  app-root .stage-editor-fields,
+  app-root .modification-editor-fields,
+  app-root .modification-option-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  app-root .modification-browser-controls,
+  app-root .editor-browser-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  app-root .editor-results-heading,
+  app-root .modification-manager > .editor-results-heading,
+  app-root .stage-manager > .editor-results-heading,
+  app-root .label-manager > .editor-results-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 @media (max-width: 38rem) {
   app-root .page-header,
   app-root .section-heading {

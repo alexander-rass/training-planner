@@ -178,6 +178,34 @@
   color: #1d5934;
 }
 
+@media (max-width: 53rem) {
+  .stage-header {
+    align-items: flex-start;
+  }
+
+  .count-control {
+    width: min(10rem, 35%);
+  }
+
+  .modifications {
+    display: grid;
+  }
+
+  .modifications .select-control {
+    width: 100%;
+  }
+}
+
+@media (max-width: 43.75rem) {
+  .stage-header {
+    flex-direction: column;
+  }
+
+  .count-control {
+    width: min(10rem, 100%);
+  }
+}
+
 @media (max-width: 38rem) {
   .stage-header {
     align-items: flex-start;
