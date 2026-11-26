@@ -3,6 +3,9 @@
     "documentTitle": "Trainingsplaner",
     "heading": "Trainingseinheit planen"
   },
+  "footer": {
+    "privacyPolicy": "Datenschutzerklärung"
+  },
   "language": {
     "label": "Sprache",
     "german": "Deutsch",

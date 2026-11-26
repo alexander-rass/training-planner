@@ -81,6 +81,24 @@
   font-weight: 700;
 }
 
+.page-footer {
+  margin-top: 2rem;
+  border-top: 1px solid #dce5dc;
+  padding-top: 1rem;
+  text-align: center;
+}
+
+.page-footer-link {
+  color: #287348;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.page-footer-link:focus-visible {
+  outline: 3px solid #8cc8a2;
+  outline-offset: 3px;
+}
+
 @media (max-width: 80rem) {
   .page-header {
     align-items: flex-start;

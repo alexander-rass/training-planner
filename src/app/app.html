@@ -155,4 +155,13 @@
       </button>
     </section>
   }
+
+  <footer class="page-footer">
+    <a
+      class="page-footer-link"
+      [href]="currentLanguage() === 'de' ? 'privacy-policy-de.html' : 'privacy-policy-en.html'"
+    >
+      {{ 'footer.privacyPolicy' | translate }}
+    </a>
+  </footer>
 </main>

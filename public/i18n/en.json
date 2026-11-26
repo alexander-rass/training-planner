@@ -3,6 +3,9 @@
     "documentTitle": "Training planner",
     "heading": "Build a training session"
   },
+  "footer": {
+    "privacyPolicy": "Privacy policy"
+  },
   "language": {
     "label": "Language",
     "german": "German",

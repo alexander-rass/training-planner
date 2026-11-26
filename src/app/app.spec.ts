@@ -92,6 +92,12 @@ describe('App', () => {
     );
     expect(compiled.querySelector('.file-picker button')?.textContent).toContain('Datei auswählen');
     expect(compiled.querySelector('.file-name')?.textContent).toContain('Keine Datei ausgewählt');
+    expect(compiled.querySelector('.page-footer-link')?.getAttribute('href')).toBe(
+      'privacy-policy-de.html',
+    );
+    expect(compiled.querySelector('.page-footer-link')?.textContent).toContain(
+      'Datenschutzerklärung',
+    );
 
     languageSelect.value = 'en';
     languageSelect.dispatchEvent(new Event('change'));
@@ -103,6 +109,10 @@ describe('App', () => {
     );
     expect(compiled.querySelector('.file-picker button')?.textContent).toContain('Choose file');
     expect(compiled.querySelector('.file-name')?.textContent).toContain('No file selected');
+    expect(compiled.querySelector('.page-footer-link')?.getAttribute('href')).toBe(
+      'privacy-policy-en.html',
+    );
+    expect(compiled.querySelector('.page-footer-link')?.textContent).toContain('Privacy policy');
     expect(document.title).toBe('Training planner');
     expect(document.documentElement.lang).toBe('en');
   });
