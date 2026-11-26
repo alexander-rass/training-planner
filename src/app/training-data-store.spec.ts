@@ -3,6 +3,7 @@ import { TrainingDataValidationError } from './training-data';
 
 const sourceJson = JSON.stringify({
   schemaVersion: 1,
+  name: 'Practice session',
   catalog: {
     stages: [{ id: 'warmup', label: 'Warm-up', order: 1, defaultDrillCount: 0 }],
     labels: [],
@@ -32,6 +33,18 @@ describe('TrainingDataStore', () => {
     expect(data.drills[0]?.diagram).toEqual({ kind: 'future-diagram' });
     expect(store.hasUnsavedChanges()).toBe(false);
     expect(store.exportContent()).toBe(sourceJson);
+  });
+
+  it('adds an inferred name when exporting legacy data without one', () => {
+    const store = new TrainingDataStore();
+    const legacyData = JSON.parse(sourceJson) as Record<string, unknown>;
+    delete legacyData['name'];
+
+    store.load(JSON.stringify(legacyData), 'Imported training');
+
+    expect(store.trainingData()?.name).toBe('Imported training');
+    expect(JSON.parse(store.exportContent()).name).toBe('Imported training');
+    expect(store.hasUnsavedChanges()).toBe(false);
   });
 
   it('validates updates and retains the previous data when a change is rejected', () => {

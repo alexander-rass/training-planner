@@ -2,6 +2,7 @@ import { parseTrainingData } from './training-data';
 
 const validData = {
   schemaVersion: 1,
+  name: 'Passing drills',
   catalog: {
     stages: [
       {
@@ -35,6 +36,18 @@ const validData = {
 };
 
 describe('parseTrainingData', () => {
+  it('uses a fallback name for legacy data without one', () => {
+    const { name: _name, ...legacyData } = validData;
+
+    expect(parseTrainingData(legacyData, 'Imported drills').name).toBe('Imported drills');
+  });
+
+  it('rejects a blank dataset name', () => {
+    expect(() => parseTrainingData({ ...validData, name: '  ' })).toThrow(
+      'validation.nonEmptyString',
+    );
+  });
+
   it('accepts valid data and a zero default drill count', () => {
     const data = parseTrainingData(validData);
 

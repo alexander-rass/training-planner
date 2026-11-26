@@ -8,6 +8,18 @@
       <p class="unsaved-status" role="status">{{ 'editor.unsavedChanges' | translate }}</p>
     }
   </div>
+  @if (trainingData(); as data) {
+    <label class="editor-field dataset-name-field">
+      <span>{{ 'editor.datasetName' | translate }}</span>
+      <input
+        type="text"
+        required
+        [disabled]="isLoading"
+        [value]="data.name"
+        (change)="onDatasetNameChanged($event)"
+      />
+    </label>
+  }
   @if (editorError(); as error) {
     <div class="message error" role="alert">
       <p>{{ error.key | translate: error.params }}</p>

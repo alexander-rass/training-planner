@@ -8,6 +8,7 @@ import {
 
 const data = parseTrainingData({
   schemaVersion: 1,
+  name: 'Practice session',
   catalog: {
     stages: [
       { id: 'game', label: 'Game', order: 3, defaultDrillCount: 1 },

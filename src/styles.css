@@ -519,6 +519,11 @@ app-root .editor-field {
   font-weight: 700;
 }
 
+app-root .dataset-name-field {
+  max-width: 32rem;
+  margin-bottom: 1.25rem;
+}
+
 app-root .editor-field input {
   width: 100%;
   min-height: 2.7rem;

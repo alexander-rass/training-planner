@@ -86,7 +86,6 @@ export class App {
   protected downloadJsonCopy(): void {
     this.downloadError.set(null);
     this.downloadNotice.set(null);
-    const sourceFileName = this.dataSource.loadedFileName();
     const data = this.trainingData();
     if (!data) {
       return;
@@ -108,16 +107,12 @@ export class App {
       });
       return;
     }
-    if (!sourceFileName) {
-      return;
-    }
-
     if (typeof document === 'undefined' || typeof URL.createObjectURL !== 'function') {
       this.downloadError.set({ key: 'errors.downloadUnavailable' });
       return;
     }
 
-    const payload = createJsonDownloadPayload(sourceFileName, sourceContent);
+    const payload = createJsonDownloadPayload(data.name, sourceContent);
     let objectUrl: string | null = null;
     let link: HTMLAnchorElement | null = null;
 

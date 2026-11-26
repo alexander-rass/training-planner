@@ -48,6 +48,8 @@
     "returnToPlanner": "Zurück zum Planer",
     "heading": "Trainingsdaten bearbeiten",
     "description": "Änderungen bleiben auf dieser Seite, bis du die bearbeitete JSON-Datei herunterlädst. Beim Aktualisieren der Seite gehen sie verloren.",
+    "datasetName": "Name des Trainingsdatensatzes",
+    "datasetNameRequired": "Der Name des Trainingsdatensatzes darf nicht leer sein. Der vorherige Name wurde wiederhergestellt.",
     "chooseSection": "Was möchtest du bearbeiten?",
     "stagesOptional": "Für einen Trainingsplan brauchst du Phasen und Übungen. Es ist naheliegend, mit den Phasen zu beginnen; du kannst aber auch zuerst Übungen erstellen und sie später Phasen zuordnen.",
     "drillsSection": "Übungen ({{count}})",
@@ -239,6 +241,7 @@
   "welcome": {
     "heading": "Trainingsdaten laden oder neu beginnen",
     "description": "Wähle eine JSON-Datei mit deinen Trainingsdaten aus oder erstelle einen leeren Datensatz. Neue Datensätze werden als separate JSON-Datei heruntergeladen; Änderungen werden nicht im Browser gespeichert.",
+    "newDatasetName": "Neuer Trainingsdatensatz",
     "createBlankDataset": "Leere Trainingsdaten erstellen"
   }
 }

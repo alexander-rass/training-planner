@@ -48,6 +48,8 @@
     "returnToPlanner": "Return to planner",
     "heading": "Edit training data",
     "description": "Changes stay in this page until you download the edited JSON. Refreshing the page clears them.",
+    "datasetName": "Training dataset name",
+    "datasetNameRequired": "A training dataset name cannot be blank. The previous name was restored.",
     "chooseSection": "What would you like to edit?",
     "stagesOptional": "A training plan needs stages and drills. Starting with stages is natural, but you can create drills first and assign them later.",
     "drillsSection": "Drills ({{count}})",
@@ -239,6 +241,7 @@
   "welcome": {
     "heading": "Load training data or start from scratch",
     "description": "Select a JSON file with your training data, or create an empty dataset. New datasets are downloaded as a separate JSON file; changes are not saved in the browser.",
+    "newDatasetName": "New training dataset",
     "createBlankDataset": "Create empty training data"
   }
 }

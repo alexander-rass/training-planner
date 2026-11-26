@@ -14,7 +14,7 @@ For suggested next steps and context to carry into a new Copilot session, see [`
 - Add, edit, reorder, and delete coaching points for each drill.
 - Manage reusable modifications and their options, and choose which drills use each modification. Deletion warns about affected drills, supports cancellation or reassignment, and can map selected options so the current plan is preserved where possible.
 - Manage labels by creating, renaming, and deleting them, assigning them to drills, and choosing main-filter labels. Deleting a used label warns about its drill and main-filter references and allows reassignment, removal, or cancellation.
-- Start from an empty dataset without loading a file. Create drills and stages in either order; drills can be assigned to stages later. Export downloads the new dataset as `new-training-data-export.json`.
+- Start from an empty dataset without loading a file. Create drills and stages in either order; drills can be assigned to stages later. Edit the dataset name, which is stored in the JSON and used to generate a safe export filename.
 - Open a data-editing hub with separate Drills, Stages, Labels, and Modifications areas. Modifications have a searchable name list and a focused detail screen for editing options and drill availability; drill search, detail, and back navigation remain within Drills.
 - Manage stages by adding, renaming, reordering, and changing default drill counts. Deleting a stage shows affected drills and lets you reassign them, leave them unassigned, or cancel.
 - Edit descriptions in a visual Markdown editor with bold, italic, numbered-list, and bullet-list formatting. The editor displays formatted text while storing Markdown in the JSON.
@@ -44,8 +44,9 @@ npm run build
 
 ## Training data
 
-Training JSON files use `schemaVersion: 1` and contain a catalog and a drill list. A drill may have an empty `availableStageIds` list when it is not currently assigned to any stage:
+Training JSON files use `schemaVersion: 1` and contain a human-readable top-level `name`, a catalog, and a drill list. Older files without a name receive one from the preloaded dataset name or local filename when loaded. Export filenames are generated from the dataset name, with spaces and other separators converted to hyphens. A drill may have an empty `availableStageIds` list when it is not currently assigned to any stage:
 
+- `name`: the editable dataset name, also used as the basis for the export filename.
 - `catalog.stages`: ordered stages with `id`, display `label`, `order`, and `defaultDrillCount`.
 - `catalog.labels`: the available labels. `catalog.mainFilterLabelIds` determines which labels appear as the main filters; other labels are available in the additional filters.
 - `catalog.modifications`: reusable selectable drill modifications, each with a `single-select` type and a list of options. A modification can be available for multiple drills.

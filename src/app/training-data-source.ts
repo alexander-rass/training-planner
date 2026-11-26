@@ -38,9 +38,15 @@ export class TrainingDataSource {
       throw new Error('Cannot create a blank dataset while training data is already loaded.');
     }
 
+    const name = this.translate.instant('welcome.newDatasetName');
+    if (typeof name !== 'string') {
+      throw new Error('The default dataset name must be a string.');
+    }
+
     const contents = JSON.stringify(
       {
         schemaVersion: 1,
+        name,
         catalog: {
           stages: [],
           labels: [],
@@ -93,7 +99,6 @@ export class TrainingDataSource {
       return;
     }
 
-    this.selectedLocalFileName.set(file.name);
     this.loadError.set(null);
     this.isLoading.set(true);
 
@@ -130,7 +135,7 @@ export class TrainingDataSource {
       const contents = await firstValueFrom(
         this.http.get(`data/${dataset.fileName}`, { responseType: 'text' }),
       );
-      this.applyTrainingData(contents, dataset.fileName, dataset.id);
+      this.applyTrainingData(contents, dataset.fileName, dataset.id, false, dataset.name);
     } catch (error) {
       if (!(error instanceof HttpErrorResponse)) {
         throw error;
@@ -190,9 +195,10 @@ export class TrainingDataSource {
     fileName: string,
     datasetId: string | null,
     isNewDataset = false,
+    fallbackName = datasetNameFromFileName(fileName),
   ): void {
     try {
-      this.trainingDataStore.load(contents);
+      this.trainingDataStore.load(contents, fallbackName);
     } catch (error) {
       if (error instanceof SyntaxError) {
         this.loadError.set({ key: 'errors.invalidJson', params: { fileName } });
@@ -216,4 +222,12 @@ export class TrainingDataSource {
     this.loadError.set(null);
     this.dataRevision.update((revision) => revision + 1);
   }
+}
+
+function datasetNameFromFileName(fileName: string): string {
+  const name = fileName
+    .replace(/\.json$/i, '')
+    .replace(/[_-]+/g, ' ')
+    .trim();
+  return name || 'Training data';
 }

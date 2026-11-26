@@ -1,5 +1,6 @@
 export const trainingDataJson = JSON.stringify({
   schemaVersion: 1,
+  name: 'SCA JG 2020',
   catalog: {
     stages: [{ id: 'warmup', label: 'Warm-up', order: 1, defaultDrillCount: 1 }],
     labels: [

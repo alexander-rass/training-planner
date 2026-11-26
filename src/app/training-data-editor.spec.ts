@@ -102,6 +102,30 @@ describe('TrainingDataEditor', () => {
     expect(compiled.querySelector('.editor-form')).toBeNull();
   });
 
+  it('edits the dataset name and restores it when the input is blank', () => {
+    const fixture = createEditorFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const nameInput = compiled.querySelector('.dataset-name-field input') as HTMLInputElement;
+    const store = TestBed.inject(TrainingDataStore);
+
+    nameInput.value = '  Team U11  ';
+    nameInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(store.trainingData()?.name).toBe('Team U11');
+    expect(store.hasUnsavedChanges()).toBe(true);
+
+    nameInput.value = '  ';
+    nameInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(nameInput.value).toBe('Team U11');
+    expect(store.trainingData()?.name).toBe('Team U11');
+    expect(compiled.querySelector('.data-editor .message.error')?.textContent).toContain(
+      'darf nicht leer sein',
+    );
+  });
+
   it('searches modifications in the list and shows options only after selection', () => {
     const fixture = createEditorFixture();
     openEditorSection(fixture, 'modifications');

@@ -1,5 +1,6 @@
 export interface TrainingData {
   schemaVersion: 1;
+  name: string;
   catalog: TrainingCatalog;
   drills: Drill[];
 }
@@ -59,12 +60,15 @@ export class TrainingDataValidationError extends Error {
   }
 }
 
-export function parseTrainingData(value: unknown): TrainingData {
+export function parseTrainingData(value: unknown, fallbackName = 'Training data'): TrainingData {
   const root = asRecord(value, 'root');
   if (root['schemaVersion'] !== 1) {
     invalid('validation.schemaVersion', { path: 'schemaVersion' });
   }
 
+  const name = Object.hasOwn(root, 'name')
+    ? asNonEmptyString(root['name'], 'name')
+    : asNonEmptyString(fallbackName, 'name');
   const catalogRecord = asRecord(root['catalog'], 'catalog');
   const stages = asArray(catalogRecord['stages'], 'catalog.stages').map((value, index) => {
     const path = `catalog.stages[${index}]`;
@@ -145,6 +149,7 @@ export function parseTrainingData(value: unknown): TrainingData {
 
   const data: TrainingData = {
     schemaVersion: 1,
+    name,
     catalog: { stages, labels, mainFilterLabelIds, modifications },
     drills,
   };

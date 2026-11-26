@@ -170,6 +170,25 @@ export class TrainingDataEditor implements OnChanges {
     }
   }
 
+  protected onDatasetNameChanged(event: Event): void {
+    const input = event.target;
+    const currentData = this.trainingData();
+    if (!(input instanceof HTMLInputElement) || !currentData) {
+      return;
+    }
+
+    const name = input.value.trim();
+    if (!name) {
+      input.value = currentData.name;
+      this.editorError.set({ key: 'editor.datasetNameRequired' });
+      return;
+    }
+
+    if (!this.applyTrainingDataChange((data) => ({ ...data, name }))) {
+      input.value = currentData.name;
+    }
+  }
+
   protected onEditorStageFilterChanged(event: Event): void {
     const select = event.target;
     if (!(select instanceof HTMLSelectElement)) {

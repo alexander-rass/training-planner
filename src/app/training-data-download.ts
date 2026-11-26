@@ -4,12 +4,21 @@ export interface JsonDownloadPayload {
 }
 
 export function createJsonDownloadPayload(
-  sourceFileName: string,
+  datasetName: string,
   sourceContent: string,
 ): JsonDownloadPayload {
-  const baseName = sourceFileName.replace(/\.json$/i, '') || 'training-data';
+  const baseName = Array.from(
+    datasetName
+      .normalize('NFKC')
+      .trim()
+      .replace(/[^\p{L}\p{N}]+/gu, '-')
+      .replace(/^-+|-+$/g, ''),
+  )
+    .slice(0, 80)
+    .join('')
+    .replace(/-+$/g, '');
   return {
-    fileName: `${baseName}-export.json`,
+    fileName: `${baseName || 'training-data'}-export.json`,
     content: sourceContent,
   };
 }

@@ -16,11 +16,17 @@ export class TrainingDataStore {
     );
   });
 
-  load(contents: string): TrainingData {
-    const data = parseTrainingData(JSON.parse(contents) as unknown);
+  load(contents: string, fallbackName = 'Training data'): TrainingData {
+    const sourceData: unknown = JSON.parse(contents);
+    const data = parseTrainingData(sourceData, fallbackName);
+    const sourceRecord = asRecord(sourceData);
     this.currentData.set(data);
     this.initialData.set(data);
-    this.sourceJsonText.set(contents);
+    this.sourceJsonText.set(
+      Object.hasOwn(sourceRecord, 'name')
+        ? contents
+        : JSON.stringify({ ...sourceRecord, name: data.name }, null, 2),
+    );
     return data;
   }
 
@@ -54,4 +60,11 @@ export class TrainingDataStore {
     parseTrainingData(data);
     return this.hasUnsavedChanges() ? JSON.stringify(data, null, 2) : sourceJsonText;
   }
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('Validated training data must have an object at the root.');
+  }
+  return Object.fromEntries(Object.entries(value));
 }

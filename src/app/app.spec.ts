@@ -114,6 +114,41 @@ describe('App', () => {
     expect(compiled.querySelector('input[type="file"]')?.getAttribute('accept')).toContain('.json');
   });
 
+  it('keeps the active local filename when a replacement file fails to load', async () => {
+    const fixture = await createAppFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
+    const store = TestBed.inject(TrainingDataStore);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const legacyData = JSON.parse(trainingDataJson) as Record<string, unknown>;
+    delete legacyData['name'];
+
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [{ name: 'pilot-data.json', text: async () => JSON.stringify(legacyData) }],
+    });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const activeData = store.trainingData();
+    expect(activeData?.name).toBe('pilot data');
+    expect(compiled.querySelector('.file-name')?.textContent).toContain('pilot-data.json');
+
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [{ name: 'invalid-data.json', text: async () => '{invalid json' }],
+    });
+    fileInput.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(store.trainingData()).toBe(activeData);
+    expect(compiled.querySelector('.file-name')?.textContent).toContain('pilot-data.json');
+    expect(compiled.querySelector('.message.error')?.textContent).toContain('invalid-data.json');
+    expect(compiled.querySelector('.message.error')?.textContent).toContain('bleibt aktiv');
+  });
+
   it('creates drills before stages and exports the new dataset under a new filename', async () => {
     const fixture = await createAppFixture();
     const compiled = fixture.nativeElement as HTMLElement;
@@ -131,6 +166,7 @@ describe('App', () => {
     const initialData = TestBed.inject(TrainingDataStore).trainingData();
     expect(initialData).toEqual({
       schemaVersion: 1,
+      name: 'Neuer Trainingsdatensatz',
       catalog: { stages: [], labels: [], mainFilterLabelIds: [], modifications: [] },
       drills: [],
     });
@@ -196,13 +232,15 @@ describe('App', () => {
     fixture.detectChanges();
     vi.runOnlyPendingTimers();
 
-    expect(downloadedFileName).toBe('new-training-data-export.json');
+    expect(downloadedFileName).toBe('Neuer-Trainingsdatensatz-export.json');
     const exportedBlob = createObjectUrl.mock.calls[0]?.[0];
     expect(exportedBlob).toBeInstanceOf(Blob);
     const exportedData = JSON.parse(await exportedBlob!.text()) as {
+      name: string;
       catalog: { stages: unknown[] };
       drills: unknown[];
     };
+    expect(exportedData.name).toBe('Neuer Trainingsdatensatz');
     expect(exportedData.catalog.stages).toHaveLength(1);
     expect(exportedData.drills).toHaveLength(1);
     expect(compiled.querySelector('.unsaved-status')?.textContent).toContain(
@@ -456,6 +494,12 @@ describe('App', () => {
     ) as HTMLButtonElement;
     editButton.click();
     fixture.detectChanges();
+    const datasetNameInput = compiled.querySelector(
+      '.dataset-name-field input',
+    ) as HTMLInputElement;
+    datasetNameInput.value = 'Team U11 Camp';
+    datasetNameInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
     openEditorSection(fixture, 'drills');
     (compiled.querySelector('.editor-drill-choice') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -478,7 +522,12 @@ describe('App', () => {
       createObjectURL: createObjectUrl,
       revokeObjectURL: revokeObjectUrl,
     });
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    let downloadedFileName = '';
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      downloadedFileName = this.download;
+    });
     vi.useFakeTimers();
 
     const exportButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
@@ -491,11 +540,14 @@ describe('App', () => {
     const exportedBlob = createObjectUrl.mock.calls[0]?.[0];
     expect(exportedBlob).toBeInstanceOf(Blob);
     const exportedData = JSON.parse(await exportedBlob!.text()) as {
+      name: string;
       drills: { title: string; labelIds: string[]; diagram?: unknown }[];
     };
     expect(exportedData.drills[0]?.title).toBe('Exported drill title');
     expect(exportedData.drills[0]?.labelIds).toEqual(['passing']);
     expect(exportedData.drills[0]?.diagram).toEqual({ kind: 'future-diagram' });
+    expect(exportedData.name).toBe('Team U11 Camp');
+    expect(downloadedFileName).toBe('Team-U11-Camp-export.json');
     expect(compiled.querySelector('.unsaved-status')?.textContent).toContain(
       'Der Export der bearbeiteten Daten wurde nicht bestätigt.',
     );
