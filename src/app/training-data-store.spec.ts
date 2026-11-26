@@ -49,7 +49,7 @@ describe('TrainingDataStore', () => {
     expect(store.exportContent()).toBe(sourceJson);
   });
 
-  it('exports valid edits and updates the baseline after export', () => {
+  it('exports valid edits without marking them as saved', () => {
     const store = new TrainingDataStore();
     store.load(sourceJson);
 
@@ -62,10 +62,7 @@ describe('TrainingDataStore', () => {
 
     const exportedContent = store.exportContent();
     expect(JSON.parse(exportedContent).drills[0].title).toBe('Updated drill');
-
-    store.markExported(exportedContent);
-
-    expect(store.hasUnsavedChanges()).toBe(false);
+    expect(store.hasUnsavedChanges()).toBe(true);
     expect(store.exportContent()).toBe(exportedContent);
   });
 

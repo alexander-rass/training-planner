@@ -38,6 +38,7 @@
     "previousFileActive": "The previously loaded file \"{{fileName}}\" remains active.",
     "downloadUnavailable": "JSON download is not available in this browser.",
     "downloadFailed": "Could not download the JSON file.",
+    "downloadRequested": "Download requested. Check your downloads.",
     "invalidDrillCount": "Enter a whole number between 0 and {{max}} for the number of drills.",
     "clipboardUnavailable": "Clipboard access is unavailable. Select and copy the formatted preview instead.",
     "clipboardFailed": "Could not copy the message to the clipboard. Select and copy the formatted preview instead."
@@ -63,7 +64,7 @@
     "stageManagementHeading": "Manage stages",
     "searchPageAria": "Search and select a drill to edit",
     "backToSearch": "Back to drill search",
-    "unsavedChanges": "Edited data has not been exported.",
+    "unsavedChanges": "Export of edited data has not been confirmed.",
     "exportChanges": "Export edited JSON",
     "drillList": "Drills",
     "addDrill": "Add drill",

@@ -54,14 +54,4 @@ export class TrainingDataStore {
     parseTrainingData(data);
     return this.hasUnsavedChanges() ? JSON.stringify(data, null, 2) : sourceJsonText;
   }
-
-  markExported(contents: string): void {
-    const data = this.currentData();
-    if (!data) {
-      throw new Error('Cannot mark training data as exported before loading a dataset.');
-    }
-
-    this.sourceJsonText.set(contents);
-    this.initialData.set(data);
-  }
 }

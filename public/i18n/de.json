@@ -38,6 +38,7 @@
     "previousFileActive": "Die zuvor geladene Datei „{{fileName}}“ bleibt aktiv.",
     "downloadUnavailable": "Der JSON-Download ist in diesem Browser nicht verfügbar.",
     "downloadFailed": "Die JSON-Datei konnte nicht heruntergeladen werden.",
+    "downloadRequested": "Download angefordert. Prüfe deine Downloads.",
     "invalidDrillCount": "Gib eine ganze Zahl zwischen 0 und {{max}} für die Anzahl der Übungen ein.",
     "clipboardUnavailable": "Der Zugriff auf die Zwischenablage ist nicht verfügbar. Markiere stattdessen die formatierte Vorschau und kopiere sie.",
     "clipboardFailed": "Die Nachricht konnte nicht in die Zwischenablage kopiert werden. Markiere stattdessen die formatierte Vorschau und kopiere sie."
@@ -63,7 +64,7 @@
     "stageManagementHeading": "Phasen verwalten",
     "searchPageAria": "Übung zum Bearbeiten suchen und auswählen",
     "backToSearch": "Zurück zur Übungssuche",
-    "unsavedChanges": "Bearbeitete Daten wurden noch nicht exportiert.",
+    "unsavedChanges": "Der Export der bearbeiteten Daten wurde nicht bestätigt.",
     "exportChanges": "Bearbeitete JSON exportieren",
     "drillList": "Übungen",
     "addDrill": "Übung hinzufügen",

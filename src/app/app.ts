@@ -31,6 +31,7 @@ export class App {
   protected readonly currentLanguage = this.translate.currentLang;
   protected readonly languageError = signal<TranslationMessage | null>(null);
   protected readonly downloadError = signal<TranslationMessage | null>(null);
+  protected readonly downloadNotice = signal<TranslationMessage | null>(null);
   constructor() {
     effect(() => {
       const title = this.translatedDocumentTitle();
@@ -46,6 +47,7 @@ export class App {
       this.dataSource.dataRevision();
       this.isEditingData.set(this.dataSource.isNewDataset());
       this.downloadError.set(null);
+      this.downloadNotice.set(null);
     });
   }
 
@@ -57,6 +59,7 @@ export class App {
     this.modificationSelectionMapping.set(mapping ?? null);
     this.planDataChangeToken.update((token) => token + 1);
     this.downloadError.set(null);
+    this.downloadNotice.set(null);
   }
 
   protected onLanguageSelected(event: Event): void {
@@ -81,6 +84,8 @@ export class App {
   }
 
   protected downloadJsonCopy(): void {
+    this.downloadError.set(null);
+    this.downloadNotice.set(null);
     const sourceFileName = this.dataSource.loadedFileName();
     const data = this.trainingData();
     if (!data) {
@@ -107,7 +112,6 @@ export class App {
       return;
     }
 
-    this.downloadError.set(null);
     if (typeof document === 'undefined' || typeof URL.createObjectURL !== 'function') {
       this.downloadError.set({ key: 'errors.downloadUnavailable' });
       return;
@@ -127,7 +131,7 @@ export class App {
       link.hidden = true;
       document.body.appendChild(link);
       link.click();
-      this.trainingDataStore.markExported(sourceContent);
+      this.downloadNotice.set({ key: 'errors.downloadRequested' });
     } catch {
       this.downloadError.set({ key: 'errors.downloadFailed' });
     } finally {

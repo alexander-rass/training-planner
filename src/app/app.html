@@ -123,6 +123,12 @@
     </div>
   }
 
+  @if (downloadNotice(); as notice) {
+    <p class="message loading download-status" role="status">
+      {{ notice.key | translate: notice.params }}
+    </p>
+  }
+
   @if (languageError(); as error) {
     <p class="message error" role="alert">{{ error.key | translate: error.params }}</p>
   }

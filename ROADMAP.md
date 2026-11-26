@@ -48,7 +48,7 @@ See [`README.md`](./README.md) for the current data format, local commands, and 
 Address these small reliability issues before browser-test setup or refactoring:
 
 1. Bound stage drill counts to a maximum of 100 and validate the limit both when loading JSON and when editing counts. Protect plan initialization and reconciliation from unbounded slot allocation.
-2. Make export feedback reflect what the browser confirms. Do not clear the unsaved-changes state solely because the download link was clicked; if download completion cannot be confirmed, communicate that limitation clearly.
+2. The app treats browser downloads as requests, not confirmation: edited data stays marked as unconfirmed, and users are advised to check their downloads.
 3. Keep the selected local filename consistent with the active dataset after a failed load. Clear it or label it as selected-but-not-loaded while retaining the previously active dataset.
 4. Fix the responsive layout at intermediate viewport widths (roughly 700–850 CSS pixels). The page title and header controls currently compete for horizontal space; the language/dataset selectors and action buttons can extend past the viewport and become clipped. Reflow the header actions and crowded editor headings/status areas into a responsive grid or stacked layout, keep controls and labels readable, and prevent horizontal overflow. Verify around 760px and just above and below the relevant breakpoint.
 

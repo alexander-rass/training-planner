@@ -205,7 +205,12 @@ describe('App', () => {
     };
     expect(exportedData.catalog.stages).toHaveLength(1);
     expect(exportedData.drills).toHaveLength(1);
-    expect(compiled.querySelector('.unsaved-status')).toBeNull();
+    expect(compiled.querySelector('.unsaved-status')?.textContent).toContain(
+      'Der Export der bearbeiteten Daten wurde nicht bestätigt.',
+    );
+    expect(compiled.querySelector('.download-status')?.textContent).toContain(
+      'Prüfe deine Downloads',
+    );
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:new-training-data');
   });
 
@@ -360,7 +365,7 @@ describe('App', () => {
       (compiled.querySelector('.slot .select-control select') as HTMLSelectElement).value,
     ).toBe('drill-001');
     expect(compiled.querySelector('.unsaved-status')?.textContent).toContain(
-      'Bearbeitete Daten wurden noch nicht exportiert.',
+      'Der Export der bearbeiteten Daten wurde nicht bestätigt.',
     );
 
     const returnButton = [...compiled.querySelectorAll('.header-actions button')].find((button) =>
@@ -436,7 +441,7 @@ describe('App', () => {
     ).toBe('');
   });
 
-  it('exports edited data as JSON and clears the unsaved indicator after export', async () => {
+  it('exports edited data as JSON without clearing the unsaved indicator', async () => {
     const fixture = await createAppFixture();
     const compiled = fixture.nativeElement as HTMLElement;
     const fileInput = compiled.querySelector('input[type="file"]') as HTMLInputElement;
@@ -491,7 +496,12 @@ describe('App', () => {
     expect(exportedData.drills[0]?.title).toBe('Exported drill title');
     expect(exportedData.drills[0]?.labelIds).toEqual(['passing']);
     expect(exportedData.drills[0]?.diagram).toEqual({ kind: 'future-diagram' });
-    expect(compiled.querySelector('.unsaved-status')).toBeNull();
+    expect(compiled.querySelector('.unsaved-status')?.textContent).toContain(
+      'Der Export der bearbeiteten Daten wurde nicht bestätigt.',
+    );
+    expect(compiled.querySelector('.download-status')?.textContent).toContain(
+      'Prüfe deine Downloads',
+    );
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:training-data');
   });
 
