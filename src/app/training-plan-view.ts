@@ -9,7 +9,12 @@ import {
 } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { MarkdownPipe } from './markdown.pipe';
-import { Drill, ModificationDefinition, StageDefinition } from './training-data';
+import {
+  Drill,
+  MAX_DRILL_COUNT_PER_STAGE,
+  ModificationDefinition,
+  StageDefinition,
+} from './training-data';
 import {
   formatWhatsAppPlan,
   ModificationSelectionMapping,
@@ -31,6 +36,7 @@ export class TrainingPlanView implements OnChanges {
   private readonly translate = inject(TranslateService);
   private readonly translatedCoachingPointsLabel =
     this.translate.translate('drills.coachingPoints');
+  private stageDefaultDrillCounts = new Map<string, number>();
 
   @Input() isVisible = true;
   @Input() resetToken = 0;
@@ -38,6 +44,7 @@ export class TrainingPlanView implements OnChanges {
   @Input() modificationSelectionMapping: ModificationSelectionMapping | null = null;
 
   protected readonly trainingData = this.trainingDataStore.trainingData;
+  protected readonly maxDrillCount = MAX_DRILL_COUNT_PER_STAGE;
   protected readonly selectedLabelIds = signal<ReadonlySet<string>>(new Set());
   protected readonly stagePlans = signal<StagePlan[]>([]);
   protected readonly planError = signal<TranslationMessage | null>(null);
@@ -153,17 +160,17 @@ export class TrainingPlanView implements OnChanges {
 
     const count = Number(input.value);
     const currentSlots = this.slotsForStage(stageId);
-    if (!Number.isSafeInteger(count) || count < 0) {
+    if (!Number.isSafeInteger(count) || count < 0 || count > MAX_DRILL_COUNT_PER_STAGE) {
       input.value = String(currentSlots.length);
-      this.planError.set({ key: 'errors.invalidDrillCount' });
+      this.planError.set({
+        key: 'errors.invalidDrillCount',
+        params: { max: MAX_DRILL_COUNT_PER_STAGE },
+      });
       return;
     }
 
     this.planError.set(null);
-    const nextSlots = currentSlots.slice(0, count);
-    while (nextSlots.length < count) {
-      nextSlots.push(createPlanSlot());
-    }
+    const nextSlots = resizePlanSlots(currentSlots, count);
     this.stagePlans.update((plans) =>
       plans.map((plan) => (plan.stageId === stageId ? { ...plan, slots: nextSlots } : plan)),
     );
@@ -243,13 +250,16 @@ export class TrainingPlanView implements OnChanges {
     const data = this.trainingData();
     this.selectedLabelIds.set(new Set());
     this.planError.set(null);
+    this.stageDefaultDrillCounts = new Map(
+      data?.catalog.stages.map((stage) => [stage.id, stage.defaultDrillCount]) ?? [],
+    );
     this.stagePlans.set(
       data
         ? [...data.catalog.stages]
             .sort((a, b) => a.order - b.order)
             .map((stage) => ({
               stageId: stage.id,
-              slots: Array.from({ length: stage.defaultDrillCount }, createPlanSlot),
+              slots: createPlanSlots(stage.defaultDrillCount),
             }))
         : [],
     );
@@ -281,6 +291,7 @@ export class TrainingPlanView implements OnChanges {
     }
 
     const previousPlans = new Map(this.stagePlans().map((plan) => [plan.stageId, plan]));
+    const previousDefaultDrillCounts = this.stageDefaultDrillCounts;
     const drillsById = new Map(data.drills.map((drill) => [drill.id, drill]));
     const modificationsById = new Map(
       data.catalog.modifications.map((modification) => [modification.id, modification]),
@@ -295,8 +306,14 @@ export class TrainingPlanView implements OnChanges {
         .sort((a, b) => a.order - b.order)
         .map((stage) => {
           const previousPlan = previousPlans.get(stage.id);
-          const slots =
-            previousPlan?.slots ?? Array.from({ length: stage.defaultDrillCount }, createPlanSlot);
+          const defaultCountChanged =
+            previousDefaultDrillCounts.has(stage.id) &&
+            previousDefaultDrillCounts.get(stage.id) !== stage.defaultDrillCount;
+          const slots = previousPlan
+            ? defaultCountChanged
+              ? resizePlanSlots(previousPlan.slots, stage.defaultDrillCount)
+              : previousPlan.slots
+            : createPlanSlots(stage.defaultDrillCount);
 
           return {
             stageId: stage.id,
@@ -347,6 +364,9 @@ export class TrainingPlanView implements OnChanges {
           };
         }),
     );
+    this.stageDefaultDrillCounts = new Map(
+      data.catalog.stages.map((stage) => [stage.id, stage.defaultDrillCount]),
+    );
   }
 
   private resetCopyStatus(): void {
@@ -357,4 +377,17 @@ export class TrainingPlanView implements OnChanges {
 
 function createPlanSlot(): PlanSlot {
   return { drillId: null, modificationSelections: {} };
+}
+
+function createPlanSlots(count: number): PlanSlot[] {
+  if (!Number.isSafeInteger(count) || count < 0 || count > MAX_DRILL_COUNT_PER_STAGE) {
+    throw new RangeError(`Drill count must be between 0 and ${MAX_DRILL_COUNT_PER_STAGE}.`);
+  }
+  return Array.from({ length: count }, createPlanSlot);
+}
+
+function resizePlanSlots(currentSlots: PlanSlot[], count: number): PlanSlot[] {
+  const slots = currentSlots.slice(0, count);
+  slots.push(...createPlanSlots(count - slots.length));
+  return slots;
 }

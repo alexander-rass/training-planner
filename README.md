@@ -51,7 +51,7 @@ Training JSON files use `schemaVersion: 1` and contain a catalog and a drill lis
 - `catalog.modifications`: reusable selectable drill modifications, each with a `single-select` type and a list of options. A modification can be available for multiple drills.
 - `drills`: drills with `id`, `title`, `availableStageIds`, `labelIds`, `descriptionMarkdown`, and `modificationIds` (the modifications available for that drill). A drill may also have `coachingPoints` and a future-use `diagram` field.
 
-IDs within each collection must be unique, and references must point to existing entries. Stage orders must also be unique, and default drill counts must be non-negative integers. The app validates the JSON and its references when loading and exporting it. Stage labels, drill content, labels, and modification text are displayed as authored in the JSON; only the application interface is translated.
+IDs within each collection must be unique, and references must point to existing entries. Stage orders must also be unique, and default drill counts must be integers from 0 to 100. The app validates the JSON and its references when loading and exporting it. Stage labels, drill content, labels, and modification text are displayed as authored in the JSON; only the application interface is translated.
 
 For example, descriptions and coaching points may use Markdown:
 

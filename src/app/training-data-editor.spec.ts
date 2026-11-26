@@ -808,11 +808,27 @@ describe('TrainingDataEditor', () => {
     fixture.detectChanges();
     expect(countInput.value).toBe('3');
     expect(compiled.querySelector('.data-editor .message.error')?.textContent).toContain(
-      'nicht-negative ganze Zahl',
+      'zwischen 0 und 100',
     );
     expect(
       store.trainingData()?.catalog.stages.find((candidate) => candidate.id === 'new-stage'),
     ).toMatchObject({ defaultDrillCount: 3 });
+
+    countInput.value = '100';
+    countInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(
+      store.trainingData()?.catalog.stages.find((candidate) => candidate.id === 'new-stage'),
+    ).toMatchObject({ defaultDrillCount: 100 });
+
+    countInput.value = '101';
+    countInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(countInput.value).toBe('100');
+    expect(compiled.querySelector('.data-editor .message.error')?.textContent).toContain('100');
+    expect(
+      store.trainingData()?.catalog.stages.find((candidate) => candidate.id === 'new-stage'),
+    ).toMatchObject({ defaultDrillCount: 100 });
   });
 
   it('warns before deleting a used stage and supports cancellation or reassignment', () => {

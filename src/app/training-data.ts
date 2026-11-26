@@ -4,6 +4,8 @@ export interface TrainingData {
   drills: Drill[];
 }
 
+export const MAX_DRILL_COUNT_PER_STAGE = 100;
+
 export interface TrainingCatalog {
   stages: StageDefinition[];
   labels: LabelDefinition[];
@@ -71,10 +73,7 @@ export function parseTrainingData(value: unknown): TrainingData {
       id: asNonEmptyString(stage['id'], `${path}.id`),
       label: asNonEmptyString(stage['label'], `${path}.label`),
       order: asPositiveInteger(stage['order'], `${path}.order`),
-      defaultDrillCount: asNonNegativeInteger(
-        stage['defaultDrillCount'],
-        `${path}.defaultDrillCount`,
-      ),
+      defaultDrillCount: asDrillCount(stage['defaultDrillCount'], `${path}.defaultDrillCount`),
     };
   });
   const labels = asArray(catalogRecord['labels'], 'catalog.labels').map((value, index) => {
@@ -297,6 +296,14 @@ function asNonNegativeInteger(value: unknown, path: string): number {
     invalid('validation.nonNegativeInteger', { path });
   }
   return value;
+}
+
+function asDrillCount(value: unknown, path: string): number {
+  const count = asNonNegativeInteger(value, path);
+  if (count > MAX_DRILL_COUNT_PER_STAGE) {
+    invalid('validation.drillCountLimit', { path, max: MAX_DRILL_COUNT_PER_STAGE });
+  }
+  return count;
 }
 
 function invalid(key: string, params: Record<string, string | number>): never {

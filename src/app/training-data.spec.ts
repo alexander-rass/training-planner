@@ -42,6 +42,26 @@ describe('parseTrainingData', () => {
     expect(data.drills[0]?.title).toBe('Passing drill');
   });
 
+  it('accepts the maximum default drill count and rejects counts above it', () => {
+    const atLimit = {
+      ...validData,
+      catalog: {
+        ...validData.catalog,
+        stages: [{ ...validData.catalog.stages[0], defaultDrillCount: 100 }],
+      },
+    };
+    expect(parseTrainingData(atLimit).catalog.stages[0]?.defaultDrillCount).toBe(100);
+
+    const overLimit = {
+      ...atLimit,
+      catalog: {
+        ...atLimit.catalog,
+        stages: [{ ...atLimit.catalog.stages[0], defaultDrillCount: 101 }],
+      },
+    };
+    expect(() => parseTrainingData(overLimit)).toThrow('validation.drillCountLimit');
+  });
+
   it('accepts a drill with no available stages', () => {
     const data = {
       ...validData,

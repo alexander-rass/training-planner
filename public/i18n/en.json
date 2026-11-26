@@ -38,7 +38,7 @@
     "previousFileActive": "The previously loaded file \"{{fileName}}\" remains active.",
     "downloadUnavailable": "JSON download is not available in this browser.",
     "downloadFailed": "Could not download the JSON file.",
-    "invalidDrillCount": "Enter a non-negative whole number of drills.",
+    "invalidDrillCount": "Enter a whole number between 0 and {{max}} for the number of drills.",
     "clipboardUnavailable": "Clipboard access is unavailable. Select and copy the formatted preview instead.",
     "clipboardFailed": "Could not copy the message to the clipboard. Select and copy the formatted preview instead."
   },
@@ -101,7 +101,7 @@
     "cancelStageDeletion": "Cancel",
     "confirmDeleteStage": "Delete stage",
     "stageLabelRequired": "A stage name cannot be blank. The previous name was restored.",
-    "invalidStageDrillCount": "Enter a non-negative whole number for the default number of drills.",
+    "invalidStageDrillCount": "Enter a whole number between 0 and {{max}} for the default number of drills.",
     "stageReassignmentUnavailable": "The selected replacement stage is no longer available. Choose another stage or leave the drills unassigned.",
     "availableStages": "Available stages",
     "labels": "Labels",
@@ -200,7 +200,8 @@
     "nonEmptyString": "{{path}} must not be empty.",
     "nonEmptyArray": "{{path}} must contain at least one item.",
     "positiveInteger": "{{path}} must be a positive integer.",
-    "nonNegativeInteger": "{{path}} must be a non-negative integer."
+    "nonNegativeInteger": "{{path}} must be a non-negative integer.",
+    "drillCountLimit": "{{path}} must not exceed {{max}}."
   },
   "filters": {
     "heading": "Filter drills by label",

@@ -72,7 +72,7 @@ describe('TrainingPlanView', () => {
     fixture.detectChanges();
     expect(compiled.querySelector('.slot')).toBeNull();
     expect((compiled.querySelector('.share .copy-button') as HTMLButtonElement).disabled).toBe(
-      true,
+      false,
     );
   });
 
@@ -124,5 +124,52 @@ describe('TrainingPlanView', () => {
     expect(compiled.querySelector('.message-preview')?.textContent).toContain(
       'Player layout: Circle',
     );
+  });
+
+  it('limits plan slots to 100 per stage', () => {
+    const fixture = createPlanFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const countInput = compiled.querySelector('.count-control input') as HTMLInputElement;
+
+    expect(countInput.max).toBe('100');
+    countInput.value = '101';
+    countInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(countInput.value).toBe('1');
+    expect(compiled.querySelectorAll('.slot')).toHaveLength(1);
+    expect(compiled.querySelector('.message.error')?.textContent).toContain('100');
+
+    countInput.value = '100';
+    countInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.slot')).toHaveLength(100);
+  });
+
+  it('keeps a stage visible without slots when its default drill count becomes zero', () => {
+    const fixture = createPlanFixture();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const store = TestBed.inject(TrainingDataStore);
+
+    expect(compiled.querySelectorAll('.slot')).toHaveLength(1);
+    expect(
+      store.applyChange((current) => ({
+        ...current,
+        catalog: {
+          ...current.catalog,
+          stages: current.catalog.stages.map((stage) => ({
+            ...stage,
+            defaultDrillCount: 0,
+          })),
+        },
+      })),
+    ).toBeNull();
+
+    fixture.componentRef.setInput('dataChangeToken', 1);
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('.stage h2')?.textContent).toContain('Warm-up');
+    expect((compiled.querySelector('.count-control input') as HTMLInputElement).value).toBe('0');
+    expect(compiled.querySelectorAll('.slot')).toHaveLength(0);
+    expect(compiled.querySelector('.empty-stage')).not.toBeNull();
   });
 });

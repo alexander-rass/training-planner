@@ -119,6 +119,7 @@
                     <input
                       type="number"
                       min="0"
+                      [max]="maxDrillCount"
                       step="1"
                       [disabled]="isLoading"
                       [value]="stage.defaultDrillCount"

@@ -13,6 +13,7 @@ import { MarkdownDescriptionEditor } from './markdown-description-editor';
 import {
   Drill,
   LabelDefinition,
+  MAX_DRILL_COUNT_PER_STAGE,
   ModificationDefinition,
   StageDefinition,
   TrainingData,
@@ -40,6 +41,7 @@ export class TrainingDataEditor implements OnChanges {
 
   protected readonly trainingData = this.trainingDataStore.trainingData;
   protected readonly hasUnsavedChanges = this.trainingDataStore.hasUnsavedChanges;
+  protected readonly maxDrillCount = MAX_DRILL_COUNT_PER_STAGE;
   protected readonly selectedEditorDrillId = signal<string | null>(null);
   protected readonly editorSection = signal<EditorSection>('home');
   protected readonly editorSearchQuery = signal('');
@@ -773,9 +775,17 @@ export class TrainingDataEditor implements OnChanges {
     }
 
     const count = Number(input.value);
-    if (!input.value.trim() || !Number.isSafeInteger(count) || count < 0) {
+    if (
+      !input.value.trim() ||
+      !Number.isSafeInteger(count) ||
+      count < 0 ||
+      count > MAX_DRILL_COUNT_PER_STAGE
+    ) {
       input.value = String(stage.defaultDrillCount);
-      this.editorError.set({ key: 'editor.invalidStageDrillCount' });
+      this.editorError.set({
+        key: 'editor.invalidStageDrillCount',
+        params: { max: MAX_DRILL_COUNT_PER_STAGE },
+      });
       return;
     }
     if (!this.updateStage(stage.id, (current) => ({ ...current, defaultDrillCount: count }))) {

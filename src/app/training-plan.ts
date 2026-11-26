@@ -31,20 +31,13 @@ export function formatWhatsAppPlan(
 
   for (const stage of [...data.catalog.stages].sort((a, b) => a.order - b.order)) {
     const stagePlan = stagePlansById.get(stage.id);
-    if (!stagePlan) {
-      continue;
-    }
-
-    const drillEntries = stagePlan.slots.flatMap((slot) => {
+    const drillEntries = (stagePlan?.slots ?? []).flatMap((slot) => {
       if (!slot.drillId) {
         return [];
       }
       const drill = drillsById.get(slot.drillId);
       return drill ? [{ drill, slot }] : [];
     });
-    if (drillEntries.length === 0) {
-      continue;
-    }
 
     const drillLines = drillEntries.map(({ drill, slot }) => {
       const lines = [`- *${drill.title}*`];
@@ -77,7 +70,9 @@ export function formatWhatsAppPlan(
       return lines.join('\n');
     });
 
-    sections.push(`*${stage.label}*\n${drillLines.join('\n\n')}`);
+    sections.push(
+      drillLines.length > 0 ? `*${stage.label}*\n${drillLines.join('\n\n')}` : `*${stage.label}*`,
+    );
   }
 
   return sections.join('\n\n');

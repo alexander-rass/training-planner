@@ -73,18 +73,21 @@ describe('formatWhatsAppPlan', () => {
         '  - Pass to _the back foot_.',
         '  *Coaching points:*',
         '  - Keep *moving*.',
+        '',
+        '*Game*',
       ].join('\n'),
     );
   });
 
-  it('returns an empty message when no drills are selected', () => {
+  it('includes every stage when no drills are selected', () => {
     const plans: StagePlan[] = [
       { stageId: 'warmup', slots: [{ drillId: null, modificationSelections: {} }] },
       { stageId: 'main', slots: [{ drillId: null, modificationSelections: {} }] },
-      { stageId: 'game', slots: [{ drillId: null, modificationSelections: {} }] },
     ];
 
-    expect(formatWhatsAppPlan(data, plans, 'Coaching points')).toBe('');
+    expect(formatWhatsAppPlan(data, plans, 'Coaching points')).toBe(
+      '*Warm-up*\n\n*Main part*\n\n*Game*',
+    );
   });
 });
 
