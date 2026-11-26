@@ -43,17 +43,6 @@ See [`README.md`](./README.md) for the current data format, local commands, and 
 
 ## Suggested roadmap
 
-### 0. Fix code-review reliability findings
-
-Address these small reliability issues before browser-test setup or refactoring:
-
-1. Bound stage drill counts to a maximum of 100 and validate the limit both when loading JSON and when editing counts. Protect plan initialization and reconciliation from unbounded slot allocation.
-2. The app treats browser downloads as requests, not confirmation: edited data stays marked as unconfirmed, and users are advised to check their downloads.
-3. Keep the selected local filename consistent with the active dataset after a failed load. Clear it or label it as selected-but-not-loaded while retaining the previously active dataset.
-4. **Complete:** Reflowed the header actions and crowded editor headings/status areas for intermediate widths. The header now uses a responsive grid through 1280px, keeps the filename from forcing overflow, and stacks controls on narrower screens. The user manually checked the layout and confirmed it is acceptable.
-
-Add focused tests for the count limit and load/export status transitions, and include the intermediate-width layout in the browser smoke checks.
-
 ### 1. Add Playwright smoke tests
 
 Add a small browser-level suite using Playwright. The current Angular/Vitest tests exercise components and app integration in jsdom, but do not launch a real browser. There is no browser-test setup or CI workflow yet.
@@ -63,7 +52,7 @@ Start with a few user-visible flows rather than duplicating detailed unit-test c
 1. Load a dataset, select a drill and modification, and verify the plan preview.
 2. Delete a used modification, cancel, then reassign it and verify that a valid selected plan option is preserved.
 3. Edit and export JSON, checking the downloaded content.
-4. Smoke-check the editor at a mobile-sized viewport.
+4. Smoke-check the editor at mobile and intermediate widths (including around 760px and just below/above the 1280px header breakpoint), and verify that no horizontal overflow or clipped controls appear.
 
 Run against the local app first. Add CI and additional browsers only if the initial suite proves useful. Viewport emulation can catch layout issues, but does not replace checking on a real iPhone or Android device.
 
