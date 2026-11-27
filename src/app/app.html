@@ -16,25 +16,35 @@
           <option value="en">{{ 'language.english' | translate }}</option>
         </select>
       </label>
-      <label class="select-control dataset-picker">
-        <span>{{ 'datasets.label' | translate }}</span>
-        <select
-          [value]="dataSource.selectedDatasetId()"
-          [disabled]="dataSource.isDatasetCatalogLoading() || dataSource.isLoading()"
-          (change)="dataSource.onDatasetSelected($event)"
-        >
-          <option value="">
-            {{
-              (dataSource.isDatasetCatalogLoading() ? 'datasets.loading' : 'datasets.placeholder')
-                | translate
-            }}
-          </option>
-          @for (dataset of dataSource.availableDatasets(); track dataset.id) {
-            <option [value]="dataset.id">{{ dataset.name }}</option>
-          }
-        </select>
-      </label>
-      @if (dataSource.selectedDatasetId()) {
+      @if (showPrivacyPolicy()) {
+
+          <button
+            class="toggle-privacy-policy-button"
+            type="button"
+            (click)="togglePrivacyPolicy()"
+          >
+            {{ 'privacyPolicy.back' | translate }}
+          </button>
+      } @else {
+        <label class="select-control dataset-picker">
+          <span>{{ 'datasets.label' | translate }}</span>
+          <select
+            [value]="dataSource.selectedDatasetId()"
+            [disabled]="dataSource.isDatasetCatalogLoading() || dataSource.isLoading()"
+            (change)="dataSource.onDatasetSelected($event)"
+          >
+            <option value="">
+              {{
+                (dataSource.isDatasetCatalogLoading() ? 'datasets.loading' : 'datasets.placeholder')
+                  | translate
+              }}
+            </option>
+            @for (dataset of dataSource.availableDatasets(); track dataset.id) {
+              <option [value]="dataset.id">{{ dataset.name }}</option>
+            }
+          </select>
+        </label>
+        @if (dataSource.selectedDatasetId()) {
         <button
           class="download-button"
           type="button"
@@ -43,8 +53,8 @@
         >
           {{ 'datasets.reload' | translate }}
         </button>
-      }
-      @if (trainingData()) {
+        }
+        @if (trainingData()) {
         <button
           class="download-button"
           type="button"
@@ -61,8 +71,8 @@
         >
           {{ (isEditingData() ? 'editor.returnToPlanner' : 'editor.editData') | translate }}
         </button>
-      }
-      <div class="file-picker">
+        }
+        <div class="file-picker">
         <span>
           {{ (dataSource.loadedFileName() ? 'header.changeData' : 'header.loadData') | translate }}
         </span>
@@ -87,10 +97,13 @@
             {{ dataSource.selectedLocalFileName() ?? ('header.noFileSelected' | translate) }}
           </span>
         </div>
-      </div>
+        </div>
+      }
     </div>
   </header>
-
+  @if (showPrivacyPolicy()) {
+    <app-privacy-policy />
+  } @else {
   @if (dataSource.datasetCatalogError(); as error) {
     <p class="message error" role="alert">{{ error.key | translate: error.params }}</p>
   }
@@ -157,11 +170,13 @@
   }
 
   <footer class="page-footer">
-    <a
-      class="page-footer-link"
-      [href]="currentLanguage() === 'de' ? 'privacy-policy-de.html' : 'privacy-policy-en.html'"
+    <button
+      class="toggle-privacy-policy-button"
+      type="button"
+      (click)="togglePrivacyPolicy()"
     >
       {{ 'footer.privacyPolicy' | translate }}
-    </a>
+    </button>
   </footer>
+  }
 </main>

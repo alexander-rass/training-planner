@@ -69,7 +69,8 @@
   overflow-wrap: anywhere;
 }
 
-.download-button {
+.download-button,
+.toggle-privacy-policy-button {
   min-height: 2.7rem;
   padding: 0.65rem 1rem;
   border: 1px solid #287348;

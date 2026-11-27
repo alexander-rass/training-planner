@@ -8,10 +8,11 @@ import { ModificationSelectionMapping } from './training-plan';
 import { TrainingDataSource } from './training-data-source';
 import { TrainingDataStore } from './training-data-store';
 import { TranslationMessage } from './translation-message';
+import { PrivacyPolicy } from './privacy-policy';
 
 @Component({
   selector: 'app-root',
-  imports: [TrainingDataEditor, TrainingPlanView, TranslatePipe],
+  imports: [TrainingDataEditor, TrainingPlanView, TranslatePipe, PrivacyPolicy],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -32,6 +33,7 @@ export class App {
   protected readonly languageError = signal<TranslationMessage | null>(null);
   protected readonly downloadError = signal<TranslationMessage | null>(null);
   protected readonly downloadNotice = signal<TranslationMessage | null>(null);
+  protected showPrivacyPolicy = signal(false);
   constructor() {
     effect(() => {
       const title = this.translatedDocumentTitle();
@@ -140,5 +142,9 @@ export class App {
         }
       }
     }
+  }
+
+  protected togglePrivacyPolicy() {
+    this.showPrivacyPolicy.update(currentValue => !currentValue);
   }
 }
