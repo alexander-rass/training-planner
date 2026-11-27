@@ -3,6 +3,32 @@
     "documentTitle": "Training planner",
     "heading": "Build a training session"
   },
+  "privacyPolicy": {
+    "heading": "Privacy policy",
+    "back": "Back",
+    "generalInformationHeader": "General Information and Data Controller",
+    "generalInformation": "This application is a purely private, non-commercial web tool for planning workouts. Protecting your personal data is important to us. Below, we inform you about what data is processed for technical reasons when you use this website.",
+    "controllerDescription": "Controller within the meaning of the GDPR:",
+    "hostingViaGitHubPagesHeader": "Hosting via GitHub Pages",
+    "hostingViaGitHubPages": "This website is provided as a static web application via GitHub Pages. The service provider is GitHub Inc., 88 Colin P Kelly Jr St, San Francisco, CA 94107, USA (or for users in the EEA: GitHub B.V., Prins Bernhardplein 200, 1097 JB Amsterdam, Netherlands). When you access this website, GitHub automatically collects so-called server log files (e.g., your IP address, browser type, operating system, referrer URL, as well as the date and time of access). This is technically necessary to deliver the website reliably and securely.",
+    "hostingViaGitHubPagesListEntry1": "Legal basis: Art. 6(1)(f) GDPR (legitimate interest in the secure and error-free provision of the website).",
+    "hostingViaGitHubPagesListEntry2": "Third-country transfer: A transfer of data to the USA cannot be ruled out. GitHub is certified under the EU-U.S. Data Privacy Framework (DPF).",
+    "hostingViaGitHubPagesListEntry3": "For further details, please refer to GitHub’s Privacy Statement: github.com",
+    "dataProcessingHeader": "Data Processing Within the Application (Local Processing)",
+    "dataProcessingListEntry1": "No Cookies & No Tracking: This application does not use cookies, nor does it use LocalStorage or SessionStorage for tracking purposes. No analytics, advertising, or third-party tracking services are integrated.",
+    "dataProcessingListEntry2": "No Server-Side Storage of Your Workout Data: All workout plans, exercises, and labels that you create or edit in the app are processed exclusively in the temporary memory (RAM) of your own browser. When you reload or close the page, all data is completely discarded.",
+    "dataProcessingListEntry3": "File Import and Export: If you use the feature to download (export) or upload (import) your own datasets, this process takes place exclusively locally on your device within your browser. At no point is any workout data transmitted to us or to external servers.",
+    "disclaimerHeader": "Disclaimer (No Medical or Fitness Advice)",
+    "disclaimer": "This application is strictly a technical tool for organizing and structuring training routines. The included sample exercises are for demonstration purposes only. The use of this tool and the execution of any workouts are at your own risk and do not replace professional medical, physiotherapeutic, or sports science advice.",
+    "yourRightsHeader": "Your Rights as a Data Subject",
+    "yourRights": "Under the applicable legal provisions (GDPR), you generally have the following rights:",
+    "yourRightsListEntry1": "Right of access to your processed personal data (Art. 15 GDPR)",
+    "yourRightsListEntry2": "Right to rectification (Art. 16 GDPR) or erasure (Art. 17 GDPR)",
+    "yourRightsListEntry3": "Right to restriction of processing (Art. 18 GDPR)",
+    "yourRightsListEntry4": "Right to object to processing (Art. 21 GDPR)",
+    "yourRightsListEntry5": "Right to lodge a complaint with a supervisory authority (Art. 77 GDPR)",
+    "yourRightsEnd": "Since we do not store or have access to any personal data ourselves, requests for access or deletion regarding server log files should be directed directly to the hosting provider, GitHub."
+  },
   "footer": {
     "privacyPolicy": "Privacy policy"
   },
